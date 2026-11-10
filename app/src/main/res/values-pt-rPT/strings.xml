@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Identity -->
+    <string name="app_name">KENKERN</string>
+    <string name="home_tagline">Motor de jogo 3D &amp; editor</string>
+    <string name="home_version_format">Núcleo do motor online · v%1$s</string>
+
+    <!-- Home / Projects -->
+    <string name="home_projects_title">Projetos</string>
+    <string name="home_new_project">Novo projeto</string>
+    <string name="home_empty_title">Ainda não existem projetos</string>
+    <string name="home_empty_hint">Crie o seu primeiro projeto para abrir o editor KENKERN.</string>
+    <string name="home_loading">A carregar projetos…</string>
+    <string name="home_delete_confirm_title">Eliminar projeto?</string>
+    <string name="home_delete_confirm_text">«%1$s» e todos os seus ficheiros de cena serão eliminados permanentemente deste dispositivo.</string>
+    <string name="home_delete">Eliminar</string>
+    <string name="home_last_modified_format">Alterado %1$s</string>
+    <string name="project_name_label">Nome do projeto</string>
+    <string name="project_name_hint">O meu jogo</string>
+    <string name="project_name_error">Introduza um nome para o projeto.</string>
+    <string name="action_create">Criar</string>
+    <string name="action_cancel">Cancelar</string>
+    <string name="action_ok">OK</string>
+    <string name="action_close">Fechar</string>
+    <string name="action_save">Guardar</string>
+    <string name="action_back">Voltar</string>
+
+    <!-- Editor top bar -->
+    <string name="editor_save">Guardar projeto</string>
+    <string name="editor_saving">A guardar…</string>
+    <string name="editor_saved">Guardado</string>
+    <string name="editor_undo">Anular</string>
+    <string name="editor_redo">Repetir</string>
+    <string name="editor_toggle_hierarchy">Mostrar/ocultar painel de Hierarquia</string>
+    <string name="editor_toggle_inspector">Mostrar/ocultar painel de Inspetor</string>
+    <string name="editor_toggle_fps">Mostrar/ocultar sobreposição de FPS</string>
+    <string name="editor_fps_format">%1$d FPS · %2$.1f ms</string>
+    <string name="editor_gl_format">OpenGL ES %1$s</string>
+    <string name="editor_exit">Fechar editor</string>
+
+    <!-- Viewport -->
+    <string name="viewport_gl_unsupported_title">OpenGL ES 3.0 não suportado</string>
+    <string name="viewport_gl_unsupported_text">Este dispositivo não indica suporte para OpenGL ES 3.0 (%1$s). A vista 3D não pode ser iniciada. O KENKERN necessita de uma GPU compatível com GLES 3.0.</string>
+    <string name="viewport_init_error">Falha ao inicializar o renderizador. Consulte o registo do motor para obter detalhes.</string>
+    <string name="viewport_hint">Um dedo: orbitar · Dois dedos: deslocar · Pinçar: zoom</string>
+
+    <!-- Hierarchy panel -->
+    <string name="scene_default_name">Cena principal</string>
+    <string name="hierarchy_title">Hierarquia</string>
+    <string name="hierarchy_scene_format">Cena: %1$s</string>
+    <string name="hierarchy_add_nink">Adicionar Nink</string>
+    <string name="hierarchy_search_hint">Procurar Ninks</string>
+    <string name="hierarchy_expand_all">Expandir tudo</string>
+    <string name="hierarchy_collapse_all">Recolher tudo</string>
+    <string name="hierarchy_empty">A cena está vazia. Utilize + para adicionar um Nink.</string>
+    <string name="hierarchy_no_results">Nenhum Nink corresponde à procura.</string>
+    <string name="hierarchy_reparent_hint">Largue numa linha para agrupar por baixo</string>
+    <string name="hierarchy_more_actions">Ações do Nink</string>
+
+    <!-- Add Nink menu -->
+    <string name="add_menu_3d_objects">Objetos 3D</string>
+    <string name="add_menu_characters">Personagens</string>
+    <string name="add_menu_groups">Grupos</string>
+    <string name="add_menu_cameras">Câmaras</string>
+    <string name="add_menu_lighting">Iluminação</string>
+    <string name="add_menu_other">Outros</string>
+    <string name="add_menu_prefabs">Prefabs</string>
+    <string name="add_menu_prefabs_empty">Ainda não há prefabs guardados.</string>
+    <string name="add_menu_target_root">Será criado na raiz da cena</string>
+    <string name="add_menu_target_selected">Será criado sob «%1$s»</string>
+
+    <!-- Nink context actions -->
+    <string name="action_rename">Renomear</string>
+    <string name="action_duplicate">Duplicar</string>
+    <string name="action_add_child">Adicionar Nink filho</string>
+    <string name="action_move_to_group">Mover para grupo…</string>
+    <string name="action_create_prefab">Criar prefab…</string>
+    <string name="action_toggle_visibility">Alternar visibilidade</string>
+    <string name="action_lock">Bloquear</string>
+    <string name="action_unlock">Desbloquear</string>
+    <string name="action_delete">Eliminar</string>
+    <string name="action_ungroup">Desagrupar</string>
+    <string name="action_set_active_camera">Definir como câmara ativa</string>
+    <string name="action_move_up">Mover para cima</string>
+    <string name="action_move_down">Mover para baixo</string>
+    <string name="action_show">Mostrar</string>
+    <string name="action_hide">Ocultar</string>
+
+    <!-- Dialogs -->
+    <string name="dialog_rename_title">Renomear Nink</string>
+    <string name="dialog_move_to_group_title">Mover para grupo</string>
+    <string name="dialog_move_to_group_root">Raiz da cena</string>
+    <string name="dialog_move_to_group_none">Não há grupos disponíveis.</string>
+    <string name="dialog_create_prefab_title">Criar prefab</string>
+    <string name="dialog_create_prefab_text">Guarda «%1$s» e os respetivos filhos como um prefab reutilizável neste projeto.</string>
+    <string name="dialog_prefab_name_label">Nome do prefab</string>
+    <string name="dialog_delete_title">Eliminar Nink?</string>
+    <string name="dialog_delete_text">«%1$s»%2$s será removido da cena. Esta ação pode ser anulada com Anular.</string>
+    <string name="dialog_delete_children_suffix">" (e os %1$d filhos)"</string>
+    <string name="dialog_error_locked">«%1$s» está bloqueado. Desbloqueie-o antes de eliminar.</string>
+
+    <!-- Inspector -->
+    <string name="inspector_title">Inspetor</string>
+    <string name="inspector_no_selection">Selecione um Nink na Hierarquia para editar as respetivas propriedades.</string>
+    <string name="inspector_active_camera_badge">Câmara ativa</string>
+    <string name="inspector_flag_active">Ativo</string>
+    <string name="inspector_flag_visible">Visível</string>
+    <string name="inspector_flag_locked">Bloqueado</string>
+    <string name="inspector_transform_position">Posição</string>
+    <string name="inspector_transform_rotation">Rotação</string>
+    <string name="inspector_transform_scale">Escala</string>
+    <string name="inspector_axis_x">X</string>
+    <string name="inspector_axis_y">Y</string>
+    <string name="inspector_axis_z">Z</string>
+    <string name="inspector_rotation_degrees_hint">graus</string>
+    <string name="inspector_section_transform">Transformação</string>
+    <string name="inspector_component_camera">Câmara</string>
+    <string name="inspector_component_light">Luz</string>
+    <string name="inspector_camera_fov">FOV</string>
+    <string name="inspector_camera_near">Perto</string>
+    <string name="inspector_camera_far">Longe</string>
+    <string name="inspector_light_intensity">Intensidade</string>
+    <string name="inspector_light_range">Alcance</string>
+
+    <!-- Nink default names -->
+    <string name="nink_cube">Cubo</string>
+    <string name="nink_sphere">Esfera</string>
+    <string name="nink_plane">Plano</string>
+    <string name="nink_cylinder">Cilindro</string>
+    <string name="nink_triangle">Triângulo</string>
+    <string name="nink_player">Jogador</string>
+    <string name="nink_npc">NPC</string>
+    <string name="nink_group">Grupo</string>
+    <string name="nink_environment_group">Grupo de ambiente</string>
+    <string name="nink_camera">Câmara</string>
+    <string name="nink_directional_light">Luz direcional</string>
+    <string name="nink_point_light">Luz pontual</string>
+    <string name="nink_spot_light">Luz spot</string>
+    <string name="nink_empty">Nink vazio</string>
+    <string name="nink_custom">Nink personalizado</string>
+
+    <!-- Errors / toasts -->
+    <string name="error_generic">Ocorreu um erro: %1$s</string>
+    <string name="error_project_load">Falha ao carregar o projeto: %1$s</string>
+    <string name="error_project_create">Falha ao criar o projeto: %1$s</string>
+    <string name="error_scene_save">Falha ao guardar a cena: %1$s</string>
+    <string name="error_locked_nink">Este Nink está bloqueado. Desbloqueie-o para editar.</string>
+    <string name="error_invalid_name">O nome não pode estar vazio.</string>
+    <string name="toast_prefab_created">Prefab «%1$s» criado</string>
+    <string name="toast_scene_saved">Cena guardada</string>
+</resources>

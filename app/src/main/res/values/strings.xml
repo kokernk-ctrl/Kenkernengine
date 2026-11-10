@@ -96,7 +96,7 @@
     <string name="dialog_prefab_name_label">Prefab name</string>
     <string name="dialog_delete_title">Delete Nink?</string>
     <string name="dialog_delete_text">“%1$s”%2$s will be removed from the scene. This action can be undone with Undo.</string>
-    <string name="dialog_delete_children_suffix"> and its %1$d children</string>
+    <string name="dialog_delete_children_suffix">" and its %1$d children"</string>
     <string name="dialog_error_locked">“%1$s” is locked. Unlock it before deleting.</string>
 
     <!-- Inspector -->
