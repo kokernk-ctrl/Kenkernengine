@@ -57,11 +57,11 @@ landscape.
   `error_scene_load_recovered`) — 129 keys per locale.
 
 ### Tests
-- 11 new JVM regression tests (67 total): `SceneOpenResolverTest` (8 — missing
+- 13 new JVM regression tests (69 total): `SceneOpenResolverTest` (8 — missing
   file, corrupt JSON, wrong format id/version, missing parents, empty
-  hierarchy, saved scene, default-scene factory failure) and `MeshKindTest`
-  (3), plus create-then-reopen and empty-hierarchy serializer roundtrips in
-  `SceneSerializerTest`.
+  hierarchy, saved scene, default-scene factory failure), `MeshKindTest`
+  (3), and create-then-reopen + empty-hierarchy serializer roundtrips in
+  `SceneSerializerTest` (2).
 
 ## [0.1.0] — Block 1: Phases 0, 1 and 2 (initial implementation)
 

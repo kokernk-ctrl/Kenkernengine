@@ -11,10 +11,10 @@
 | --- | --- |
 | Block 1 — Phases 0, 1, 2 | ✅ Implemented (see checklists below) |
 | HOTFIX 0.1.1 — crash on project open + editor orientation | ✅ Implemented (fixes verified by code audit + CI; device validation still pending, see below) |
-| Unit tests | ✅ 67/67 passing on CI (56 previous + 11 new regression tests) |
+| Unit tests | ✅ 69/69 passing on CI (56 previous + 13 new regression tests) |
 | Debug APK | ✅ Built on CI (`kenkern-debug-apk` artifact) |
 | Release APK | ✅ Built on CI (`kenkern-release-apk` artifact; signing via secrets optional, currently unsigned) |
-| GitHub Actions | ✅ Hotfix run green (tests + assembleDebug + assembleRelease + artifacts) |
+| GitHub Actions | ✅ Hotfix run green (run 42890030869: tests + assembleDebug + assembleRelease + artifacts) |
 | Localization | ✅ en (base), pt-BR, pt-PT, fr — 129 keys each, key-complete |
 | Physical-device validation (Android 13 / Unisoc T612 / Mali) | ⚠️ **NOT performed** — no device available to the CI/sandbox; manual test plan below |
 
@@ -119,7 +119,7 @@ the manifest.
 | ProjectSerializerTest | 6 | ✅ pass (CI) |
 | SceneOpenResolverTest (NEW — open/recover/fail policy) | 8 | ✅ pass (CI) |
 | MeshKindTest (NEW — type→mesh mapping) | 3 | ✅ pass (CI) |
-| **Total** | **67** | **67 passed, 0 failed** |
+| **Total** | **69** | **69 passed, 0 failed** |
 
 Notes:
 - Tests are JVM (JUnit 4) unit tests; the real `org.json` artifact is used so serializers
