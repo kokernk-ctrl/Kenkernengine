@@ -76,9 +76,9 @@ class KenkernGLSurfaceView(
         override fun chooseConfig(egl: EGL10, display: EGLDisplay): javax.microedition.khronos.egl.EGLConfig {
             for (spec in specs) {
                 val numConfigs = IntArray(1)
-                if (egl.eglChooseConfig(display, spec, null, 0, numConfigs, 0) && numConfigs[0] > 0) {
+                if (egl.eglChooseConfig(display, spec, null, 0, numConfigs) && numConfigs[0] > 0) {
                     val configs = arrayOfNulls<javax.microedition.khronos.egl.EGLConfig>(numConfigs[0])
-                    if (egl.eglChooseConfig(display, spec, configs, numConfigs[0], numConfigs, 0) &&
+                    if (egl.eglChooseConfig(display, spec, configs, configs.size, numConfigs) &&
                         numConfigs[0] > 0
                     ) {
                         return configs[0]!!
@@ -89,7 +89,7 @@ class KenkernGLSurfaceView(
             // least one exists; this branch is a safety net, not a code path.
             val any = arrayOfNulls<javax.microedition.khronos.egl.EGLConfig>(1)
             val num = IntArray(1)
-            egl.eglChooseConfig(display, LAST_RESORT_SPEC, any, 1, num, 0)
+            egl.eglChooseConfig(display, LAST_RESORT_SPEC, any, any.size, num)
             if (num[0] > 0 && any[0] != null) {
                 EngineLogger.w(SUBSYSTEM, "EGL degraded to last-resort config")
                 return any[0]!!

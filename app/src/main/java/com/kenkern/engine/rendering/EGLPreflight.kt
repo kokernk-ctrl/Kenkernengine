@@ -79,7 +79,8 @@ object EGLPreflight {
             try {
                 for (spec in SPECS) {
                     val numConfigs = IntArray(1)
-                    val queried = EGL14.eglChooseConfig(display, spec, 0, null, 0, numConfigs, 0)
+                    // configs=null + config_size=0 -> count-only query.
+                    val queried = EGL14.eglChooseConfig(display, spec, 0, null, 0, 0, numConfigs, 0)
                     if (queried && numConfigs[0] > 0) {
                         EngineLogger.i(SUBSYSTEM, "Compatible EGL config found — ${numConfigs[0]} match(es)")
                         return Result(true, "EGL config OK (${numConfigs[0]} match(es))")

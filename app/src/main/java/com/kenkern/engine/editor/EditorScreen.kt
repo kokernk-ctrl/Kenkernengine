@@ -53,7 +53,6 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.kenkern.engine.R
 import com.kenkern.engine.core.EngineLogger
@@ -86,7 +85,6 @@ fun EditorScreen(
     val viewModel: EditorViewModel = viewModel(key = "editor-$projectId")
     viewModel.ensureLoaded(projectId)
 
-    val storeOwner = LocalViewModelStoreOwner.current
     val activity = LocalContext.current.findActivity()
 
     // Landscape while editing; portrait again for the launcher. Disposable
@@ -101,11 +99,13 @@ fun EditorScreen(
         }
     }
 
-    // Full teardown on close: clears the ViewModel (running its save-on-exit
-    // flush) before navigating back to the project launcher.
+    // Save-on-exit flush + back to the launcher on every close path. The
+    // editor ViewModel stays in the activity store (cleared on activity death)
+    // like the rest of the block; the flush guarantees no scene changes are
+    // lost regardless.
     val closeEditor = {
         try {
-            storeOwner?.viewModelStore?.clear("editor-$projectId")
+            viewModel.flushOnExit()
         } catch (t: Throwable) {
             EngineLogger.e("EditorScreen", "Editor teardown failed", t)
         }
@@ -460,7 +460,7 @@ private fun ViewportArea(viewModel: EditorViewModel) {
 
         is ViewportSetup.Ready -> {
             AndroidView(
-                view = current.surface,
+                factory = { _ -> current.surface },
                 modifier = Modifier.fillMaxSize()
             )
 

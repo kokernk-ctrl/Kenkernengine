@@ -170,6 +170,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     private var projectRef: com.kenkern.engine.project.KenkernProject? = null
     private var autosaveJob: Job? = null
     private var inspectorTransformEdit = false
+    private var flushOnExitStarted = false
 
     private val sceneListener = SceneChangeListener { reason, ninkId ->
         onSceneChanged(reason, ninkId)
@@ -721,16 +722,39 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         RenderFramePublisher.gridVisible = true
     }
 
+    /**
+     * Best-effort save invoked by the editor screen right before leaving
+     * (back button, exit button, fatal-load screen). Mirrors [onCleared];
+     * guarded against double-execution. Never blocks the exit: the write is
+     * atomic and happens on IO.
+     */
+    fun flushOnExit() {
+        if (flushOnExitStarted) return
+        val scene = sceneInternal ?: return
+        val id = projectId ?: return
+        if (!isDirty) return
+        flushOnExitStarted = true
+        autosaveJob?.cancel()
+        val json = SceneSerializer.serialize(scene)
+        val path = entryScenePath
+        isSaving = true
+        GlobalScope.launch(Dispatchers.IO) {
+            try {
+                repository.saveSceneJson(id, path, json)
+                isDirty = false
+                EngineLogger.i(LOG_TAG, "Save-on-exit flush completed for $id")
+            } catch (e: Exception) {
+                EngineLogger.e(LOG_TAG, "Save-on-exit flush failed for $id", e)
+            } finally {
+                isSaving = false
+            }
+        }
+    }
+
     /** Final flush when the editor closes; best-effort, never blocks exit. */
     override fun onCleared() {
-        val scene = sceneInternal
-        val id = projectId
-        if (scene != null && id != null && isDirty) {
-            val json = SceneSerializer.serialize(scene)
-            val path = entryScenePath
-            GlobalScope.launch(Dispatchers.IO) {
-                runCatching { repository.saveSceneJson(id, path, json) }
-            }
+        if (!flushOnExitStarted) {
+            flushOnExit()
         }
         sceneInternal?.removeListener(sceneListener)
         super.onCleared()
