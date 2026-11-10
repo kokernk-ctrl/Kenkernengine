@@ -4,6 +4,8 @@ import android.content.Context
 import com.kenkern.engine.core.EngineConfig
 import com.kenkern.engine.core.EngineLogger
 import com.kenkern.engine.serialization.ProjectSerializer
+import com.kenkern.engine.serialization.SceneSerializer
+import com.kenkern.engine.scene.SceneFactory
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -70,6 +72,9 @@ class ProjectRepository(private val context: Context) {
         check(dir.mkdirs() || dir.isDirectory) { "Could not create project directory" }
         File(dir, "scenes").mkdirs()
         writeMetadata(project)
+        // Starter scene with localized default nink names.
+        val defaultScene = SceneFactory.createDefaultScene { type -> context.getString(type.nameRes) }
+        saveSceneJson(id, DEFAULT_ENTRY_SCENE, SceneSerializer.serialize(defaultScene))
         EngineLogger.i(log, "Created project '$name' ($id)")
         project
     }
@@ -84,6 +89,61 @@ class ProjectRepository(private val context: Context) {
 
     suspend fun saveMetadata(project: KenkernProject): Unit = withContext(Dispatchers.IO) {
         writeMetadata(project.copy(lastModifiedMillis = System.currentTimeMillis()))
+    }
+
+    // ------------------------------------------------------------------
+    // Scene persistence
+    // ------------------------------------------------------------------
+
+    fun sceneFile(projectId: String, scenePath: String): File = File(projectDir(projectId), scenePath)
+
+    /** Returns the entry scene JSON, or null when the project has no scene yet. */
+    suspend fun loadSceneJson(projectId: String, scenePath: String): String? = withContext(Dispatchers.IO) {
+        val file = sceneFile(projectId, scenePath)
+        if (file.isFile) file.readText() else null
+    }
+
+    suspend fun saveSceneJson(projectId: String, scenePath: String, json: String): Unit = withContext(Dispatchers.IO) {
+        val file = sceneFile(projectId, scenePath)
+        file.parentFile?.mkdirs()
+        try {
+            val tmp = File(file.parentFile, file.name + ".tmp")
+            tmp.writeText(json)
+            if (!tmp.renameTo(file)) {
+                file.delete()
+                check(tmp.renameTo(file)) { "Atomic scene rename failed" }
+            }
+        } catch (e: Exception) {
+            throw ProjectSaveException("Failed writing scene $scenePath for $projectId", e)
+        }
+    }
+
+    // ------------------------------------------------------------------
+    // Prefab persistence
+    // ------------------------------------------------------------------
+
+    /** Lists prefab names (file names without extension), alphabetically. */
+    suspend fun listPrefabs(projectId: String): List<String> = withContext(Dispatchers.IO) {
+        val dir = prefabsDir(projectId)
+        dir.listFiles { f -> f.isFile && f.extension == PREFAB_EXTENSION }
+            ?.map { it.nameWithoutExtension }
+            ?.sorted()
+            ?: emptyList()
+    }
+
+    suspend fun savePrefabJson(projectId: String, name: String, json: String): Unit = withContext(Dispatchers.IO) {
+        val dir = prefabsDir(projectId)
+        dir.mkdirs()
+        try {
+            File(dir, "$name.$PREFAB_EXTENSION").writeText(json)
+        } catch (e: Exception) {
+            throw ProjectSaveException("Failed writing prefab '$name' for $projectId", e)
+        }
+    }
+
+    suspend fun loadPrefabJson(projectId: String, name: String): String? = withContext(Dispatchers.IO) {
+        val file = File(prefabsDir(projectId), "$name.$PREFAB_EXTENSION")
+        if (file.isFile) file.readText() else null
     }
 
     // ------------------------------------------------------------------
@@ -136,5 +196,6 @@ class ProjectRepository(private val context: Context) {
 
     companion object {
         const val DEFAULT_ENTRY_SCENE: String = "scenes/main.kscene"
+        const val PREFAB_EXTENSION: String = "kprefab"
     }
 }

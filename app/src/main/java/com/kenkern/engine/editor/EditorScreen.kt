@@ -17,9 +17,15 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Redo
+import androidx.compose.material.icons.automirrored.filled.Undo
+import androidx.compose.material.icons.filled.AccountTree
+import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Speed
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -45,6 +51,8 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.kenkern.engine.R
+import com.kenkern.engine.editor.panels.HierarchyPanel
+import com.kenkern.engine.editor.panels.InspectorPanel
 import com.kenkern.engine.editor.theme.KenkernColors
 import com.kenkern.engine.input.ViewportInputHandler
 import com.kenkern.engine.rendering.GLCapabilities
@@ -53,9 +61,8 @@ import com.kenkern.engine.rendering.KenkernGLSurfaceView
 import kotlinx.coroutines.delay
 
 /**
- * KENKERN editor screen (Phase 1): editor chrome + live OpenGL ES 3.0
- * viewport with orbit camera, reference grid and FPS diagnostics.
- * Floating Nink panels arrive with Phase 2.
+ * KENKERN editor screen: editor chrome + OpenGL ES 3.0 viewport + floating
+ * Nink panels (Hierarchy, Inspector) rendered above the GL surface.
  */
 @Composable
 fun EditorScreen(
@@ -76,7 +83,17 @@ fun EditorScreen(
         EditorTopBar(
             title = viewModel.projectName,
             isLoading = viewModel.isLoading,
+            isSaving = viewModel.isSaving,
+            canUndo = viewModel.canUndo,
+            canRedo = viewModel.canRedo,
+            hierarchyVisible = viewModel.hierarchyVisible,
+            inspectorVisible = viewModel.inspectorVisible,
             fpsVisible = viewModel.fpsOverlayVisible,
+            onUndo = { viewModel.undo() },
+            onRedo = { viewModel.redo() },
+            onSave = { viewModel.saveNow() },
+            onToggleHierarchy = { viewModel.toggleHierarchy() },
+            onToggleInspector = { viewModel.toggleInspector() },
             onToggleFps = { viewModel.toggleFpsOverlay() },
             onExit = onExit
         )
@@ -88,13 +105,31 @@ fun EditorScreen(
         ) {
             ViewportArea(viewModel)
 
+            // Floating panels above the GL viewport.
+            if (viewModel.hierarchyVisible && !viewModel.isLoading) {
+                HierarchyPanel(
+                    viewModel = viewModel,
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(start = 10.dp, top = 12.dp)
+                )
+            }
+            if (viewModel.inspectorVisible && !viewModel.isLoading) {
+                InspectorPanel(
+                    viewModel = viewModel,
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(end = 10.dp, top = 12.dp)
+                )
+            }
+
             if (viewModel.fpsOverlayVisible && viewModel.fps > 0) {
                 FpsOverlay(
                     fps = viewModel.fps,
                     frameMs = viewModel.frameMs,
                     glSummary = viewModel.glSummary,
                     modifier = Modifier
-                        .align(Alignment.TopEnd)
+                        .align(Alignment.BottomStart)
                         .padding(10.dp)
                 )
             }
@@ -109,11 +144,30 @@ fun EditorScreen(
                 )
             }
 
-            if (viewModel.renderInitError == null) {
+            if (viewModel.renderInitError == null && !viewModel.hierarchyVisible && !viewModel.inspectorVisible) {
                 InputHintChip(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .padding(bottom = 12.dp)
+                )
+            }
+
+            // Toast (transient) + error banner.
+            viewModel.toastMessage?.let { message ->
+                ToastBanner(
+                    message = message,
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 16.dp)
+                )
+            }
+            viewModel.errorMessage?.let { message ->
+                ErrorBanner(
+                    message = message,
+                    onDismiss = { viewModel.dismissError() },
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .padding(top = 8.dp)
                 )
             }
         }
@@ -121,10 +175,20 @@ fun EditorScreen(
 }
 
 @Composable
-fun EditorTopBar(
+private fun EditorTopBar(
     title: String,
     isLoading: Boolean,
+    isSaving: Boolean,
+    canUndo: Boolean,
+    canRedo: Boolean,
+    hierarchyVisible: Boolean,
+    inspectorVisible: Boolean,
     fpsVisible: Boolean,
+    onUndo: () -> Unit,
+    onRedo: () -> Unit,
+    onSave: () -> Unit,
+    onToggleHierarchy: () -> Unit,
+    onToggleInspector: () -> Unit,
     onToggleFps: () -> Unit,
     onExit: () -> Unit
 ) {
@@ -142,23 +206,57 @@ fun EditorTopBar(
                 tint = KenkernColors.TextPrimary
             )
         }
-        Spacer(modifier = Modifier.width(4.dp))
         Text(
             text = title,
             color = KenkernColors.TextPrimary,
-            fontSize = 16.sp,
+            fontSize = 15.sp,
             fontWeight = FontWeight.SemiBold,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f)
         )
-        if (isLoading) {
+        if (isLoading || isSaving) {
             CircularProgressIndicator(
                 color = KenkernColors.Accent,
                 strokeWidth = 2.dp,
                 modifier = Modifier
-                    .padding(end = 12.dp)
-                    .size(18.dp)
+                    .padding(end = 8.dp)
+                    .size(16.dp)
+            )
+        }
+        IconButton(onClick = onUndo, enabled = canUndo) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.Undo,
+                contentDescription = stringResource(R.string.editor_undo),
+                tint = if (canUndo) KenkernColors.TextPrimary else KenkernColors.TextDisabled
+            )
+        }
+        IconButton(onClick = onRedo, enabled = canRedo) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.Redo,
+                contentDescription = stringResource(R.string.editor_redo),
+                tint = if (canRedo) KenkernColors.TextPrimary else KenkernColors.TextDisabled
+            )
+        }
+        IconButton(onClick = onSave) {
+            Icon(
+                imageVector = Icons.Filled.Save,
+                contentDescription = stringResource(R.string.editor_save),
+                tint = KenkernColors.TextPrimary
+            )
+        }
+        IconButton(onClick = onToggleHierarchy) {
+            Icon(
+                imageVector = Icons.Filled.AccountTree,
+                contentDescription = stringResource(R.string.editor_toggle_hierarchy),
+                tint = if (hierarchyVisible) KenkernColors.Accent else KenkernColors.TextSecondary
+            )
+        }
+        IconButton(onClick = onToggleInspector) {
+            Icon(
+                imageVector = Icons.Filled.Tune,
+                contentDescription = stringResource(R.string.editor_toggle_inspector),
+                tint = if (inspectorVisible) KenkernColors.Accent else KenkernColors.TextSecondary
             )
         }
         IconButton(onClick = onToggleFps) {
@@ -176,8 +274,6 @@ private fun ViewportArea(viewModel: EditorViewModel) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
 
-    // Device capability pre-check: the editor reports unsupported GPUs
-    // instead of crashing inside EGL.
     val deviceInfo = remember {
         val am = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
         am.deviceConfigurationInfo
@@ -220,8 +316,6 @@ private fun ViewportArea(viewModel: EditorViewModel) {
         modifier = Modifier.fillMaxSize()
     )
 
-    // Render loop follows the Android lifecycle: pause stops the GL thread,
-    // resume restarts it; context recreation is handled inside the renderer.
     DisposableEffect(lifecycleOwner, glView) {
         val surface = glView
         val observer = LifecycleEventObserver { _, event ->
@@ -239,7 +333,6 @@ private fun ViewportArea(viewModel: EditorViewModel) {
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    // Low-rate statistics polling for the FPS overlay.
     LaunchedEffect(Unit) {
         while (true) {
             viewModel.pollRenderStats()
@@ -296,4 +389,47 @@ private fun ViewportErrorBanner(message: String, detail: String, modifier: Modif
         Spacer(modifier = Modifier.height(6.dp))
         Text(text = detail, color = KenkernColors.TextSecondary, fontSize = 11.sp, maxLines = 6)
     }
+}
+
+@Composable
+private fun ErrorBanner(message: String, onDismiss: () -> Unit, modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier
+            .background(KenkernColors.Danger.copy(alpha = 0.16f), RoundedCornerShape(10.dp))
+            .border(1.dp, KenkernColors.Danger.copy(alpha = 0.5f), RoundedCornerShape(10.dp))
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = message,
+            color = KenkernColors.TextPrimary,
+            fontSize = 12.sp,
+            modifier = Modifier.weight(1f)
+        )
+        Text(
+            text = stringResource(R.string.action_close),
+            color = KenkernColors.Danger,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier
+                .clickable { onDismiss() }
+                .padding(6.dp)
+        )
+    }
+}
+
+@Composable
+private fun ToastBanner(message: String, modifier: Modifier = Modifier) {
+    LaunchedEffect(message) {
+        delay(3500)
+    }
+    Text(
+        text = message,
+        color = KenkernColors.TextPrimary,
+        fontSize = 12.sp,
+        modifier = modifier
+            .background(KenkernColors.PanelRaised.copy(alpha = 0.95f), RoundedCornerShape(10.dp))
+            .border(1.dp, KenkernColors.PanelBorder, RoundedCornerShape(10.dp))
+            .padding(horizontal = 14.dp, vertical = 8.dp)
+    )
 }

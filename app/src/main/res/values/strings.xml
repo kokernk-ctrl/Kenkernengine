@@ -45,6 +45,7 @@
     <string name="viewport_hint">One finger: orbit · Two fingers: pan · Pinch: zoom</string>
 
     <!-- Hierarchy panel -->
+    <string name="scene_default_name">Main Scene</string>
     <string name="hierarchy_title">Hierarchy</string>
     <string name="hierarchy_scene_format">Scene: %1$s</string>
     <string name="hierarchy_add_nink">Add Nink</string>
@@ -112,6 +113,7 @@
     <string name="inspector_axis_y">Y</string>
     <string name="inspector_axis_z">Z</string>
     <string name="inspector_rotation_degrees_hint">degrees</string>
+    <string name="inspector_section_transform">Transform</string>
     <string name="inspector_component_camera">Camera</string>
     <string name="inspector_component_light">Light</string>
     <string name="inspector_camera_fov">FOV</string>
