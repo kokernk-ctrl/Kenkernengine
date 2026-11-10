@@ -1,0 +1,32 @@
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# Android Studio / IntelliJ
+.idea/
+*.iml
+*.ipr
+*.iws
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Android SDK local path (machine specific, never commit)
+local.properties
+
+# Kotlin
+.kotlin/
+
+# Logs and crash dumps
+*.log
+logs/
+
+# OS artifacts
+.DS_Store
+Thumbs.db
+
+# Signing material must never be committed
+*.jks
+*.keystore
+keystore.properties

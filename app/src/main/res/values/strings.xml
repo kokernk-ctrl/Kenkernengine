@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Identity -->
+    <string name="app_name">KENKERN</string>
+    <string name="home_tagline">3D Game Engine &amp; Editor</string>
+    <string name="home_version_format">Engine core online · v%1$s</string>
+
+    <!-- Home / Projects -->
+    <string name="home_projects_title">Projects</string>
+    <string name="home_new_project">New Project</string>
+    <string name="home_empty_title">No projects yet</string>
+    <string name="home_empty_hint">Create your first project to open the KENKERN editor.</string>
+    <string name="home_loading">Loading projects…</string>
+    <string name="home_delete_confirm_title">Delete project?</string>
+    <string name="home_delete_confirm_text">“%1$s” and all of its scene files will be permanently removed from this device.</string>
+    <string name="home_delete">Delete</string>
+    <string name="home_last_modified_format">Modified %1$s</string>
+    <string name="project_name_label">Project name</string>
+    <string name="project_name_hint">My Game</string>
+    <string name="project_name_error">Enter a project name.</string>
+    <string name="action_create">Create</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_ok">OK</string>
+    <string name="action_close">Close</string>
+    <string name="action_save">Save</string>
+    <string name="action_back">Back</string>
+
+    <!-- Editor top bar -->
+    <string name="editor_save">Save project</string>
+    <string name="editor_saving">Saving…</string>
+    <string name="editor_saved">Saved</string>
+    <string name="editor_undo">Undo</string>
+    <string name="editor_redo">Redo</string>
+    <string name="editor_toggle_hierarchy">Toggle Hierarchy panel</string>
+    <string name="editor_toggle_inspector">Toggle Inspector panel</string>
+    <string name="editor_toggle_fps">Toggle FPS overlay</string>
+    <string name="editor_fps_format">%1$d FPS · %2$.1f ms</string>
+    <string name="editor_gl_format">OpenGL ES %1$s</string>
+    <string name="editor_exit">Close editor</string>
+
+    <!-- Viewport -->
+    <string name="viewport_gl_unsupported_title">OpenGL ES 3.0 not supported</string>
+    <string name="viewport_gl_unsupported_text">This device does not report OpenGL ES 3.0 support (%1$s). The 3D viewport cannot start. KENKERN requires a GLES 3.0 capable GPU.</string>
+    <string name="viewport_init_error">The renderer failed to initialize. Check the engine log for details.</string>
+    <string name="viewport_hint">One finger: orbit · Two fingers: pan · Pinch: zoom</string>
+
+    <!-- Hierarchy panel -->
+    <string name="hierarchy_title">Hierarchy</string>
+    <string name="hierarchy_scene_format">Scene: %1$s</string>
+    <string name="hierarchy_add_nink">Add Nink</string>
+    <string name="hierarchy_search_hint">Search Ninks</string>
+    <string name="hierarchy_expand_all">Expand all</string>
+    <string name="hierarchy_collapse_all">Collapse all</string>
+    <string name="hierarchy_empty">Scene is empty. Use + to add a Nink.</string>
+    <string name="hierarchy_no_results">No Ninks match the search.</string>
+    <string name="hierarchy_reparent_hint">Drop on a row to parent under it</string>
+    <string name="hierarchy_more_actions">Nink actions</string>
+
+    <!-- Add Nink menu -->
+    <string name="add_menu_3d_objects">3D Objects</string>
+    <string name="add_menu_characters">Characters</string>
+    <string name="add_menu_groups">Groups</string>
+    <string name="add_menu_cameras">Cameras</string>
+    <string name="add_menu_lighting">Lighting</string>
+    <string name="add_menu_other">Other</string>
+    <string name="add_menu_prefabs">Prefabs</string>
+    <string name="add_menu_prefabs_empty">No prefabs saved yet.</string>
+    <string name="add_menu_target_root">Will be created at scene root</string>
+    <string name="add_menu_target_selected">Will be created under “%1$s”</string>
+
+    <!-- Nink context actions -->
+    <string name="action_rename">Rename</string>
+    <string name="action_duplicate">Duplicate</string>
+    <string name="action_add_child">Add Child Nink</string>
+    <string name="action_move_to_group">Move to Group…</string>
+    <string name="action_create_prefab">Create Prefab…</string>
+    <string name="action_toggle_visibility">Toggle Visibility</string>
+    <string name="action_lock">Lock</string>
+    <string name="action_unlock">Unlock</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_ungroup">Ungroup</string>
+    <string name="action_set_active_camera">Set Active Camera</string>
+    <string name="action_move_up">Move Up</string>
+    <string name="action_move_down">Move Down</string>
+    <string name="action_show">Show</string>
+    <string name="action_hide">Hide</string>
+
+    <!-- Dialogs -->
+    <string name="dialog_rename_title">Rename Nink</string>
+    <string name="dialog_move_to_group_title">Move to Group</string>
+    <string name="dialog_move_to_group_root">Scene root</string>
+    <string name="dialog_move_to_group_none">No groups available.</string>
+    <string name="dialog_create_prefab_title">Create Prefab</string>
+    <string name="dialog_create_prefab_text">Saves “%1$s” and its children as a reusable prefab in this project.</string>
+    <string name="dialog_prefab_name_label">Prefab name</string>
+    <string name="dialog_delete_title">Delete Nink?</string>
+    <string name="dialog_delete_text">“%1$s”%2$s will be removed from the scene. This action can be undone with Undo.</string>
+    <string name="dialog_delete_children_suffix"> and its %1$d children</string>
+    <string name="dialog_error_locked">“%1$s” is locked. Unlock it before deleting.</string>
+
+    <!-- Inspector -->
+    <string name="inspector_title">Inspector</string>
+    <string name="inspector_no_selection">Select a Nink in the Hierarchy to edit its properties.</string>
+    <string name="inspector_active_camera_badge">Active camera</string>
+    <string name="inspector_flag_active">Active</string>
+    <string name="inspector_flag_visible">Visible</string>
+    <string name="inspector_flag_locked">Locked</string>
+    <string name="inspector_transform_position">Position</string>
+    <string name="inspector_transform_rotation">Rotation</string>
+    <string name="inspector_transform_scale">Scale</string>
+    <string name="inspector_axis_x">X</string>
+    <string name="inspector_axis_y">Y</string>
+    <string name="inspector_axis_z">Z</string>
+    <string name="inspector_rotation_degrees_hint">degrees</string>
+    <string name="inspector_component_camera">Camera</string>
+    <string name="inspector_component_light">Light</string>
+    <string name="inspector_camera_fov">FOV</string>
+    <string name="inspector_camera_near">Near</string>
+    <string name="inspector_camera_far">Far</string>
+    <string name="inspector_light_intensity">Intensity</string>
+    <string name="inspector_light_range">Range</string>
+
+    <!-- Nink default names -->
+    <string name="nink_cube">Cube</string>
+    <string name="nink_sphere">Sphere</string>
+    <string name="nink_plane">Plane</string>
+    <string name="nink_cylinder">Cylinder</string>
+    <string name="nink_triangle">Triangle</string>
+    <string name="nink_player">Player</string>
+    <string name="nink_npc">NPC</string>
+    <string name="nink_group">Group</string>
+    <string name="nink_environment_group">Environment Group</string>
+    <string name="nink_camera">Camera</string>
+    <string name="nink_directional_light">Directional Light</string>
+    <string name="nink_point_light">Point Light</string>
+    <string name="nink_spot_light">Spot Light</string>
+    <string name="nink_empty">Empty Nink</string>
+    <string name="nink_custom">Custom Nink</string>
+
+    <!-- Errors / toasts -->
+    <string name="error_generic">Something went wrong: %1$s</string>
+    <string name="error_project_load">Failed to load project: %1$s</string>
+    <string name="error_project_create">Failed to create project: %1$s</string>
+    <string name="error_scene_save">Failed to save scene: %1$s</string>
+    <string name="error_locked_nink">This Nink is locked. Unlock it to edit.</string>
+    <string name="error_invalid_name">Name cannot be empty.</string>
+    <string name="toast_prefab_created">Prefab “%1$s” created</string>
+    <string name="toast_scene_saved">Scene saved</string>
+</resources>

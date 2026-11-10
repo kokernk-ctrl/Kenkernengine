@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      KENKERN editor theme.
+      windowBackground is transparent so the GLSurfaceView (which renders behind
+      the window surface) remains visible inside the editor viewport, while all
+      editor screens draw their own opaque KENKERN dark background.
+    -->
+    <style name="Theme.Kenkern" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:statusBarColor">@color/kenkern_background</item>
+        <item name="android:navigationBarColor">@color/kenkern_background</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+</resources>
