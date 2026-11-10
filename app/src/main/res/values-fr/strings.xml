@@ -140,8 +140,10 @@
     <string name="nink_custom">Nink personnalisé</string>
 
     <!-- Errors / toasts -->
+    <string name="error_editor_open_title">Impossible d’ouvrir ce projet</string>
     <string name="error_generic">Une erreur s’est produite : %1$s</string>
     <string name="error_project_load">Échec du chargement du projet : %1$s</string>
+    <string name="error_scene_load_recovered">Le fichier de scène était invalide et a été remplacé par une scène par défaut neuve. Détails : %1$s</string>
     <string name="error_project_create">Échec de la création du projet : %1$s</string>
     <string name="error_scene_save">Échec de l’enregistrement de la scène : %1$s</string>
     <string name="error_locked_nink">Ce Nink est verrouillé. Déverrouillez-le pour le modifier.</string>

@@ -68,11 +68,18 @@ RenderFramePublisher.current  ──volatile swap──▶  GLRenderer.onDrawFra
 
 Key implementation points (all **IMPLEMENTED**):
 
-- **Surface**: `KenkernGLSurfaceView` requests an OpenGL ES 3.0 client version, an EGL config
-  with RGBA8 color + 24-bit depth, `preserveEGLContextOnPause = true`, and
-  `setZOrderOnTop(false)` — the surface renders *behind* the Compose window surface, and the
-  window background is transparent so the viewport shows through while Compose panels float on
-  top (see decision D7).
+- **Surface**: `KenkernGLSurfaceView` requests an OpenGL ES 3.0 client version and resolves the
+  EGL config through a **fallback chain** (RGBA8 + D24 + S8 → RGBA8 + D16 → RGB565 → any
+  window config) instead of a single rigid spec, so constrained/quirky drivers degrade
+  gracefully. `preserveEGLContextOnPause = true` and `setZOrderOnTop(false)` — the surface
+  renders *behind* the (translucent) Compose window surface, and the editor leaves only the
+  viewport area unpainted so the GL content shows through while Compose panels float on top
+  (see decision D7).
+- **Crash containment (HOTFIX 0.1.1)**: EGL config availability is pre-validated on the UI
+  thread by `EGLPreflight` before the GL surface is created — a broken driver becomes a
+  localized UI error, not an uncaught GL-thread exception (which would kill the process).
+  Surface creation, `setRenderer` and every `GLRenderer` callback are exception-guarded:
+  failures are logged with stack traces and surfaced through the existing error banner.
 - **Renderer**: `GLRenderer` implements `GLSurfaceView.Renderer`. `onSurfaceCreated` probes
   capabilities and rebuilds shader programs and meshes (context-loss strategy: never assume a
   previous context's objects exist). `onDrawFrame` clears to the identity dark color, draws the
@@ -204,6 +211,19 @@ filesDir/
 - **Single activity** (`MainActivity`) hosts all Compose content; `EditorRoot` switches between
   `HomeScreen` and `EditorScreen`. Configuration changes are declared in the manifest so the
   activity is not recreated (the GL surface and editor state survive rotation).
+- **Orientation policy (HOTFIX 0.1.1)**: the manifest pins portrait as the base state; the
+  editor requests `SENSOR_LANDSCAPE` on entry and restores portrait on every exit path
+  (back button, back gesture, exit button, fatal-load error screen) via a `DisposableEffect`.
+  Because config changes do not recreate the activity, scene state, the GL surface host and
+  the floating panels survive the rotation intact; the GL surface simply re-creates and the
+  renderer rebuilds its context resources.
+- **Error containment (HOTFIX 0.1.1)**: opening a project can never crash the process. The
+  scene-opening decision lives in the pure `SceneOpenResolver` (missing file → default scene;
+  corrupt file → default scene + recorded error + localized banner; unexpected failure →
+  `Failed`). `EditorViewModel` logs the real exception, exposes `loadFailed`/`loadErrorMessage`,
+  and `EditorScreen` renders a full-screen localized error with a way back to the launcher;
+  project files are never touched by the failing load path. Viewport/GL failures surface as
+  an in-editor error banner (see §3).
 - **State ownership**: `EditorViewModel` (an `AndroidViewModel`) owns the `Scene`, the
   `SceneEditor`/`CommandStack` pair, selection, panel visibility, search, expanded ids, dirty
   and saving flags, prefab names, and error state. `HomeViewModel` owns the project list.
@@ -213,7 +233,10 @@ filesDir/
   `HierarchyRow` projection rebuilt on structural changes — never a parallel source of truth).
 - **GL in Compose**: the viewport is a `KenkernGLSurfaceView` embedded via `AndroidView`.
   The GL surface sits behind the Compose window surface (`setZOrderOnTop(false)`) with a
-  transparent window background (see D7); floating panels render above the viewport.
+  **translucent window** (`windowIsTranslucent` + transparent background, see D7); the editor
+  paints opaque chrome (status-bar strip, top bar, navigation-bar strip) and leaves the
+  viewport region unpainted, so floating panels render above the viewport while the GL
+  content stays visible.
 - **Panels** (`editor/panels/`): `HierarchyPanel` (floating, draggable, search, expand/collapse,
   drag-handle reparenting, per-row three-dot menus), `InspectorPanel` (flags, transform,
   camera/light components), `AddNinkMenu` (entries from `NinkCatalog`, an extensible registry,
@@ -232,10 +255,12 @@ filesDir/
 | D4 | **Commands instead of direct scene mutation** | Undo/redo, single notification path, and main-thread confinement fall out of the same mechanism. Commands make every mutation reversible and testable (`CommandStackTest`, 12 tests) without UI. |
 | D5 | **Single Euler convention** `R = Rz(z)·Ry(y)·Rx(x)` (X then Y then Z) | One convention across math, serialization, Inspector (degrees) and tests eliminates convention drift between systems; `Transform.decomposeFrom` is implemented to invert exactly this composition. |
 | D6 | **Immutable `RenderFrameData` snapshots for UI → GL hand-off** | The GL thread must never observe live scene objects mid-mutation; a volatile pointer swap is lock-free, allocation-light (built only on change, not per frame) and trivially safe. |
-| D7 | **Transparent window background + `setZOrderOnTop(false)`** | Lets the `GLSurfaceView` render *behind* the Compose window surface so Compose panels float above the viewport without a second compositing surface; `EditorScreen` only leaves the viewport area transparent. |
+| D7 | **Translucent window + `setZOrderOnTop(false)`** | Lets the `GLSurfaceView` render *behind* the Compose window surface so Compose panels float above the viewport without a second compositing surface. The window must be translucent (`windowIsTranslucent` + transparent background) for per-pixel visibility of the behind-window surface; `EditorScreen` paints opaque chrome and leaves only the viewport area transparent. (HOTFIX 0.1.1 fixed the previous config, which kept the viewport hidden and used a fragile EGL/window combination.) |
 | D8 | **Registry as single source of truth + flat `HierarchyRow` projection** | UI trees drift; a projection rebuilt from the registry on `STRUCTURE` changes keeps one authoritative structure with no parallel hierarchy to invalidate. |
 | D9 | **Version-checked file formats** | Scene/prefab files carry `format` + `version` (currently 1) and are rejected loudly on mismatch, so future format changes can migrate instead of silently corrupting scenes. |
 | D10 | **No per-frame allocations in the renderer** | Mobile GC pauses are visible in frame time; scratch matrices, cached meshes and cached shader programs keep the GL loop allocation-free. |
+| D11 | **Orientation via `requestedOrientation`, not two activities** (HOTFIX 0.1.1) | The launcher is portrait, the editor landscape. Requesting orientation on the single activity + declared `configChanges` avoids any activity recreation, so scene state, undo history and the GL surface survive the transition; a second activity would add state-transfer risk for zero benefit in a hotfix. |
+| D12 | **Defense-in-depth around the GL thread** (HOTFIX 0.1.1) | EGL failures inside `GLSurfaceView`'s GL thread are process-fatal by platform design. KENKERN therefore layers: UI-thread `EGLPreflight` (config availability before creation) → fallback config chooser → guarded surface/renderer creation → guarded renderer callbacks → error banner + crash-report file. Any layer that fails degrades to the next instead of crashing. |
 
 ## 8. Extension points for future blocks
 

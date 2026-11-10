@@ -140,8 +140,10 @@
     <string name="nink_custom">Nink personalizado</string>
 
     <!-- Errors / toasts -->
+    <string name="error_editor_open_title">Não foi possível abrir este projeto</string>
     <string name="error_generic">Algo deu errado: %1$s</string>
     <string name="error_project_load">Falha ao carregar o projeto: %1$s</string>
+    <string name="error_scene_load_recovered">O arquivo de cena era inválido e foi substituído por uma cena padrão nova. Detalhes: %1$s</string>
     <string name="error_project_create">Falha ao criar o projeto: %1$s</string>
     <string name="error_scene_save">Falha ao salvar a cena: %1$s</string>
     <string name="error_locked_nink">Este Nink está bloqueado. Desbloqueie-o para editar.</string>

@@ -2,7 +2,66 @@
 
 All notable changes to the KENKERN Engine are documented here.
 The format follows Keep a Changelog principles; the project has not yet
-adopted semantic versioning for public APIs (engine version: 0.1.0).
+adopted semantic versioning for public APIs (engine version: 0.1.1).
+
+## [0.1.1] — HOTFIX: crash on project open + editor orientation
+
+User-reported: (1) the app closed automatically when entering the scene editor
+after creating a project; (2) the editor opened in portrait instead of
+landscape.
+
+### Fixed — crash containment around the GL subsystem
+- New `EGLPreflight`: validates EGL config availability on the UI thread with
+  a fallback chain **before** the GL surface exists, so a broken driver
+  surfaces as a localized UI error instead of an uncaught GL-thread exception
+  (which terminates the process).
+- `KenkernGLSurfaceView`: rigid single EGL spec replaced by a fallback chooser
+  (RGBA8 + D24 + S8 → RGBA8 + D16 → RGB565 → any window config); `setRenderer`
+  guarded with the error surfaced to the editor UI.
+- `GLRenderer`: all three `GLSurfaceView.Renderer` callbacks exception-guarded;
+  failures are logged with full stack traces and shown in the existing viewport
+  error banner; the draw loop halts on persistent failure and recovers on
+  context recreation.
+- Viewport creation inside the editor is fully guarded; any residual failure
+  renders an opaque error state with the actual exception detail.
+
+### Fixed — viewport compositing
+- The window is now translucent (`windowIsTranslucent`) and the editor paints
+  opaque chrome only (status-bar strip, top bar, navigation-bar strip),
+  leaving the viewport region unpainted — the behind-window GL surface is
+  actually visible now (previously it was permanently covered by an opaque
+  Compose background, and the window/EGL combination was the fragile
+  configuration most likely responsible for driver-level EGL failures).
+
+### Fixed — project-opening error handling
+- `EditorViewModel.ensureLoaded` no longer swallows exceptions silently: the
+  real exception is logged and recorded.
+- New pure `SceneOpenResolver` (unit-tested) decides missing/corrupt/unexpected
+  scene outcomes; corrupt scene data falls back to a fresh default scene with a
+  localized recovery banner, and unexpected failures render a full-screen
+  localized error screen with a way back to the project launcher. Project
+  files are never deleted or rewritten by a failing load.
+- Closing the editor now clears its ViewModel so the save-on-exit flush runs
+  (previously the flush was dead code because editor ViewModels were scoped to
+  the activity lifetime).
+
+### Fixed — orientation
+- The launcher is portrait (manifest base state); entering the editor requests
+  `SENSOR_LANDSCAPE` and every exit path restores portrait. The activity is
+  never recreated (declared `configChanges`), so scene state, undo history,
+  the GL surface and floating panels survive the transition.
+
+### Changed
+- Engine version bumped to 0.1.1 (versionCode 2).
+- Localization: +2 keys in en/pt-BR/pt-PT/fr (`error_editor_open_title`,
+  `error_scene_load_recovered`) — 129 keys per locale.
+
+### Tests
+- 11 new JVM regression tests (67 total): `SceneOpenResolverTest` (8 — missing
+  file, corrupt JSON, wrong format id/version, missing parents, empty
+  hierarchy, saved scene, default-scene factory failure) and `MeshKindTest`
+  (3), plus create-then-reopen and empty-hierarchy serializer roundtrips in
+  `SceneSerializerTest`.
 
 ## [0.1.0] — Block 1: Phases 0, 1 and 2 (initial implementation)
 

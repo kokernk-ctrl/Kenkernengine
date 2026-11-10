@@ -9,6 +9,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.kenkern.engine.R
 import com.kenkern.engine.core.EngineConfig
+import com.kenkern.engine.core.EngineLogger
 import com.kenkern.engine.math.Matrix4
 import com.kenkern.engine.project.ProjectRepository
 import com.kenkern.engine.rendering.FrameStats
@@ -66,6 +67,10 @@ data class HierarchyRow(
  */
 class EditorViewModel(application: Application) : AndroidViewModel(application) {
 
+    private companion object {
+        const val LOG_TAG = "EditorVM"
+    }
+
     private val repository = ProjectRepository(application)
     private val appContext = application
 
@@ -80,6 +85,10 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     var isLoading by mutableStateOf(true)
         private set
     var loadFailed by mutableStateOf(false)
+        private set
+
+    /** Localized, user-facing description of the open failure (when [loadFailed]). */
+    var loadErrorMessage by mutableStateOf<String?>(null)
         private set
 
     // ------------------------------------------------------------------
@@ -183,33 +192,49 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
                 val sceneJson = withContext(Dispatchers.IO) {
                     repository.loadSceneJson(id, project.entryScenePath)
                 }
-                val scene: Scene = if (sceneJson != null) {
-                    try {
-                        SceneSerializer.deserialize(sceneJson)
-                    } catch (e: SerializationException) {
-                        errorMessage = appContext.getString(R.string.error_generic, e.message ?: "scene data invalid")
+                when (
+                    val opened = SceneOpenResolver.open(sceneJson) {
                         SceneFactory.createDefaultScene { type -> appContext.getString(type.nameRes) }
                     }
-                } else {
-                    SceneFactory.createDefaultScene { type -> appContext.getString(type.nameRes) }
+                ) {
+                    is SceneOpenResolver.SceneOpenOutcome.Failed -> throw opened.error
+
+                    is SceneOpenResolver.SceneOpenOutcome.Ready -> {
+                        opened.recoveredFrom?.let { error ->
+                            EngineLogger.e(LOG_TAG, "Scene file invalid — a default scene replaced it", error)
+                            errorMessage = appContext.getString(
+                                R.string.error_scene_load_recovered,
+                                error.message ?: "invalid scene"
+                            )
+                        }
+                        val scene = opened.scene
+                        scene.addListener(sceneListener)
+                        if (scene.mainCameraId == null) {
+                            // Load-time repair; no change notification required.
+                            SceneOps.findFirstCamera(scene)?.let { scene.mainCameraId = it }
+                        }
+                        sceneInternal = scene
+                        commandStackInternal = CommandStack(scene) { publishUndoState() }
+                        sceneEditor = SceneEditor(scene, commandStackInternal!!)
+                        projectName = project.name
+                        sceneName = scene.name
+                        isLoading = false
+                        rebuildRows()
+                        publishRenderData()
+                        refreshPrefabs()
+                    }
                 }
-                scene.addListener(sceneListener)
-                if (scene.mainCameraId == null) {
-                    // Load-time repair; no change notification required.
-                    SceneOps.findFirstCamera(scene)?.let { scene.mainCameraId = it }
-                }
-                sceneInternal = scene
-                commandStackInternal = CommandStack(scene) { publishUndoState() }
-                sceneEditor = SceneEditor(scene, commandStackInternal!!)
-                projectName = project.name
-                sceneName = scene.name
-                isLoading = false
-                rebuildRows()
-                publishRenderData()
-                refreshPrefabs()
             } catch (e: Exception) {
+                // Opening failed: record the real exception, keep the project on
+                // disk untouched and let the user return to the launcher — the
+                // editor must never silently die or show a broken shell.
+                EngineLogger.e(LOG_TAG, "Failed to open project $id", e)
                 isLoading = false
                 loadFailed = true
+                loadErrorMessage = appContext.getString(
+                    R.string.error_project_load,
+                    e.message ?: e.javaClass.simpleName
+                )
             }
         }
     }

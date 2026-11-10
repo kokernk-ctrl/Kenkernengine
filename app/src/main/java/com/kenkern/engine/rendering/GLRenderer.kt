@@ -54,13 +54,56 @@ class GLRenderer(
     @Volatile
     private var surfaceHeight = 1
 
+    /** Set after a draw-loop failure; drawing stops until the next context. */
+    @Volatile
+    private var drawFatal = false
+
     // ------------------------------------------------------------------
     // GLSurfaceView.Renderer
+    //
+    // Every callback is exception-guarded: an uncaught exception on the GL
+    // thread terminates the whole process, so any failure is captured here,
+    // logged with its stack trace and surfaced through [initializationError]
+    // (shown as an in-editor error banner) instead.
     // ------------------------------------------------------------------
 
     override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
+        try {
+            guardedSurfaceCreated(gl, config)
+        } catch (t: Throwable) {
+            drawFatal = false
+            initializationError = describe(t)
+            EngineLogger.e(SUBSYSTEM, "onSurfaceCreated failed", t)
+        }
+    }
+
+    override fun onSurfaceChanged(gl: GL10?, width: Int, height: Int) {
+        try {
+            guardedSurfaceChanged(gl, width, height)
+        } catch (t: Throwable) {
+            initializationError = describe(t)
+            EngineLogger.e(SUBSYSTEM, "onSurfaceChanged failed", t)
+        }
+    }
+
+    override fun onDrawFrame(gl: GL10?) {
+        if (drawFatal) return
+        try {
+            guardedDrawFrame(gl)
+        } catch (t: Throwable) {
+            // Stop drawing so a persistent failure does not spam the log; the
+            // editor UI shows the error and onSurfaceCreated clears this on
+            // context recreation.
+            drawFatal = true
+            if (initializationError == null) initializationError = describe(t)
+            EngineLogger.e(SUBSYSTEM, "onDrawFrame failed", t)
+        }
+    }
+
+    private fun guardedSurfaceCreated(gl: GL10?, config: EGLConfig?) {
         // A new (or recreated) context invalidates all previous handles.
         initializationError = null
+        drawFatal = false
         GLCapabilities.probe()
 
         GLES30.glEnable(GLES30.GL_DEPTH_TEST)
@@ -86,7 +129,7 @@ class GLRenderer(
         EngineLogger.i(SUBSYSTEM, "Surface created; renderer initialized. error=$initializationError")
     }
 
-    override fun onSurfaceChanged(gl: GL10?, width: Int, height: Int) {
+    private fun guardedSurfaceChanged(gl: GL10?, width: Int, height: Int) {
         surfaceWidth = if (width > 0) width else 1
         surfaceHeight = if (height > 0) height else 1
         GLES30.glViewport(0, 0, surfaceWidth, surfaceHeight)
@@ -100,7 +143,7 @@ class GLRenderer(
         EngineLogger.i(SUBSYSTEM, "Surface changed: ${surfaceWidth}x$surfaceHeight")
     }
 
-    override fun onDrawFrame(gl: GL10?) {
+    private fun guardedDrawFrame(gl: GL10?) {
         frameStats.onFrame()
 
         GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT or GLES30.GL_DEPTH_BUFFER_BIT)
@@ -196,6 +239,15 @@ class GLRenderer(
         }
         gridMesh = MeshFactory.grid()
         wireCubeMesh = MeshFactory.wireCube()
+    }
+
+    /** Compact one-line description for UI banners; full trace goes to the log. */
+    private fun describe(t: Throwable): String = buildString {
+        append(t.javaClass.simpleName)
+        t.message?.let { append(": ").append(it) }
+        t.stackTrace.firstOrNull()?.let {
+            append(" (").append(it.fileName ?: "?").append(":").append(it.lineNumber).append(")")
+        }
     }
 
     private companion object {

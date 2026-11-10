@@ -14,7 +14,7 @@ object EngineConfig {
     // Identity
     // ------------------------------------------------------------------
     const val ENGINE_NAME: String = "KENKERN"
-    const val VERSION: String = "0.1.0"
+    const val VERSION: String = "0.1.1"
 
     // ------------------------------------------------------------------
     // Rendering

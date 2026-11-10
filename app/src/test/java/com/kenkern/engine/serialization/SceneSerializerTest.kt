@@ -223,4 +223,54 @@ class SceneSerializerTest {
         assertEquals(0, restored.registry.ninkCount())
         assertEquals("Empty", restored.name)
     }
+
+    // ------------------------------------------------------------------
+    // HOTFIX 0.1.1 regression: the exact sequence performed when creating a
+    // project (default scene) and reopening it later (saved scene).
+    // ------------------------------------------------------------------
+
+    @Test
+    fun `default scene survives the create-then-reopen roundtrip exactly`() {
+        val created = SceneFactory.createDefaultScene { type -> type.name }
+
+        // Simulate project creation persisting the starter scene...
+        val savedJson = SceneSerializer.serialize(created)
+        // ...and the editor loading it again afterwards.
+        val reopened = SceneSerializer.deserialize(savedJson)
+
+        assertEquals(created.name, reopened.name)
+        assertEquals(created.registry.ninkCount(), reopened.registry.ninkCount())
+        assertEquals(created.mainCameraId, reopened.mainCameraId)
+
+        // Parent/child links survive: every child of the default environment
+        // group is re-attached under the same-named group after reopening.
+        val createdEnv = created.registry.allNinks().first { it.type == NinkType.GROUP_ENVIRONMENT }
+        val reopenedEnv = reopened.registry.allNinks().first { it.type == NinkType.GROUP_ENVIRONMENT }
+        assertEquals(createdEnv.childIds.size, reopenedEnv.childIds.size)
+        for (childId in createdEnv.childIds) {
+            val child = created.registry.nink(childId)!!
+            val reopenedChild = reopened.registry.allNinks().first { it.name == child.name }
+            assertEquals(reopenedEnv.id, reopenedChild.parentId)
+        }
+        // Transforms survive.
+        val createdCube = created.registry.allNinks().first { it.type == NinkType.MESH_CUBE }
+        val reopenedCube = reopened.registry.allNinks().first { it.type == NinkType.MESH_CUBE }
+        assertEquals(createdCube.transform, reopenedCube.transform)
+    }
+
+    @Test
+    fun `empty hierarchy survives the save-reopen roundtrip`() {
+        val empty = Scene()
+        empty.name = "No Ninks"
+        val json = SceneSerializer.serialize(empty)
+        val reopened = SceneSerializer.deserialize(json)
+        assertEquals(0, reopened.registry.ninkCount())
+        assertEquals(0, reopened.registry.rootIds().size)
+        assertNull(reopened.mainCameraId)
+        assertEquals("No Ninks", reopened.name)
+        // Serializing the reopened scene again is stable (save on exit).
+        val resaved = SceneSerializer.serialize(reopened)
+        val reloaded = SceneSerializer.deserialize(resaved)
+        assertEquals(0, reloaded.registry.ninkCount())
+    }
 }

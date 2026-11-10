@@ -140,8 +140,10 @@
     <string name="nink_custom">Custom Nink</string>
 
     <!-- Errors / toasts -->
+    <string name="error_editor_open_title">Could not open this project</string>
     <string name="error_generic">Something went wrong: %1$s</string>
     <string name="error_project_load">Failed to load project: %1$s</string>
+    <string name="error_scene_load_recovered">The scene file was invalid and was replaced with a fresh default scene. Details: %1$s</string>
     <string name="error_project_create">Failed to create project: %1$s</string>
     <string name="error_scene_save">Failed to save scene: %1$s</string>
     <string name="error_locked_nink">This Nink is locked. Unlock it to edit.</string>
