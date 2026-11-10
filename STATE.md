@@ -12,10 +12,10 @@
 | Phase 0 — Project foundation | ✅ Implemented (see acceptance checklist below) |
 | Phase 1 — Graphics foundation | ✅ Implemented (see acceptance checklist below) |
 | Phase 2 — Nink system | ✅ Implemented (see acceptance checklist below) |
-| Unit tests | ✅ 56/56 passing (local JVM run) |
-| Debug APK | ✅ Builds locally (`app-debug.apk`) |
-| Release APK | ✅ Builds locally (`app-release-unsigned.apk`; signing via secrets optional) |
-| GitHub Actions | ⏳ Pushed to trigger the first official run — see build status badge/Actions tab |
+| Unit tests | ✅ 56/56 passing (local JVM run + GitHub Actions run) |
+| Debug APK | ✅ Builds locally and on CI (`kenkern-debug-apk` artifact, 15.4 MB) |
+| Release APK | ✅ Builds locally and on CI (`kenkern-release-apk` artifact, 9.9 MB; signing via secrets optional, currently unsigned) |
+| GitHub Actions | ✅ Run 42868608173 — **success** on ubuntu-latest (all steps green: tests + assembleDebug + assembleRelease + artifacts) |
 | Localization | ✅ en (base), pt-BR, pt-PT, fr — 127 keys each, key-complete |
 
 ## Phase 0 acceptance checklist
@@ -87,8 +87,11 @@ Notes:
 
 ## Known bugs
 
-None known at the time of writing. (Issues found during development were
-fixed and are listed in CHANGELOG.md.)
+None known at the time of writing. The first CI run failed on a
+third-party SDK setup action (`android-actions/setup-android@v3` — legacy
+`tools` package removed upstream); fixed by using the runner's preinstalled
+SDK directly. (All other issues found during development were fixed and are
+listed in CHANGELOG.md.)
 
 ## Known limitations (by design, not bugs)
 
@@ -106,9 +109,11 @@ fixed and are listed in CHANGELOG.md.)
 
 ## Next recommended task
 
-1. Watch the first GitHub Actions run; fix any CI-only failure and re-run.
-2. Manual device smoke test of the debug APK: home → create project → editor
-   → add/move/delete Ninks → rotate device (context recreation) → background/
-   foreground (pause/resume) → save → reopen.
-3. Start Block 2 planning (see ROADMAP.md): viewport gizmos + picking, camera/
-   light gizmo drawing, component undo support, edge-reparenting UX.
+1. Manual device smoke test of the debug APK (download the
+   `kenkern-debug-apk` artifact from the successful run): home → create
+   project → editor → add/move/delete Ninks → rotate device (context
+   recreation) → background/foreground (pause/resume) → save → reopen.
+2. Optionally configure the four `KENKERN_*` signing secrets to produce
+   signed release APKs.
+3. Start Block 2 planning (see ROADMAP.md): viewport gizmos + picking,
+   camera/light gizmo drawing, component undo support, edge-reparenting UX.
