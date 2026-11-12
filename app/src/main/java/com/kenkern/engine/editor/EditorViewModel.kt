@@ -8,6 +8,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.kenkern.engine.R
+import com.kenkern.engine.core.CrashDiag
 import com.kenkern.engine.core.EngineConfig
 import com.kenkern.engine.core.EngineLogger
 import com.kenkern.engine.math.Matrix4
@@ -185,14 +186,17 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         if (loaded) return
         loaded = true
         projectId = id
+        CrashDiag.step("EDITOR_LOAD_BEGIN", "projectId=$id")
         viewModelScope.launch {
             try {
                 val project = withContext(Dispatchers.IO) { repository.loadProject(id) }
+                CrashDiag.step("EDITOR_PROJECT_LOADED", "name='${project.name}' entry='${project.entryScenePath}'")
                 projectRef = project
                 entryScenePath = project.entryScenePath
                 val sceneJson = withContext(Dispatchers.IO) {
                     repository.loadSceneJson(id, project.entryScenePath)
                 }
+                CrashDiag.step("EDITOR_SCENE_JSON", "bytes=${sceneJson?.length ?: -1}")
                 when (
                     val opened = SceneOpenResolver.open(sceneJson) {
                         SceneFactory.createDefaultScene { type -> appContext.getString(type.nameRes) }
@@ -203,6 +207,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
                     is SceneOpenResolver.SceneOpenOutcome.Ready -> {
                         opened.recoveredFrom?.let { error ->
                             EngineLogger.e(LOG_TAG, "Scene file invalid — a default scene replaced it", error)
+                            CrashDiag.step("EDITOR_SCENE_RECOVERED", "${error.message}")
                             errorMessage = appContext.getString(
                                 R.string.error_scene_load_recovered,
                                 error.message ?: "invalid scene"
@@ -223,6 +228,10 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
                         rebuildRows()
                         publishRenderData()
                         refreshPrefabs()
+                        CrashDiag.step(
+                            "EDITOR_LOAD_OK",
+                            "ninks=${scene.registry.ninkCount()} camera=${scene.mainCameraId != null} rows=${hierarchyRows.size}"
+                        )
                     }
                 }
             } catch (e: Exception) {
@@ -230,6 +239,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
                 // disk untouched and let the user return to the launcher — the
                 // editor must never silently die or show a broken shell.
                 EngineLogger.e(LOG_TAG, "Failed to open project $id", e)
+                CrashDiag.stepFailed("EDITOR_LOAD_FAILED", e)
                 isLoading = false
                 loadFailed = true
                 loadErrorMessage = appContext.getString(

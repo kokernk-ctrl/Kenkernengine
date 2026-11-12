@@ -1,6 +1,7 @@
 package com.kenkern.engine.rendering
 
 import android.opengl.EGL14
+import com.kenkern.engine.core.CrashDiag
 import com.kenkern.engine.core.EngineLogger
 
 /**
@@ -65,29 +66,34 @@ object EGLPreflight {
 
     fun validate(): Result {
         return try {
+            CrashDiag.step("EGL_PREFLIGHT", "begin")
             val display = EGL14.eglGetDisplay(EGL14.EGL_DEFAULT_DISPLAY)
             if (display == EGL14.EGL_NO_DISPLAY) {
                 EngineLogger.e(SUBSYSTEM, "eglGetDisplay returned EGL_NO_DISPLAY")
+                CrashDiag.step("EGL_PREFLIGHT", "FAIL eglGetDisplay=EGL_NO_DISPLAY")
                 return Result(false, "eglGetDisplay returned EGL_NO_DISPLAY")
             }
             val version = IntArray(2)
             if (!EGL14.eglInitialize(display, version, 0, version, 1)) {
                 val detail = "eglInitialize failed (EGL error 0x${Integer.toHexString(EGL14.eglGetError())})"
                 EngineLogger.e(SUBSYSTEM, detail)
+                CrashDiag.step("EGL_PREFLIGHT", "FAIL $detail")
                 return Result(false, detail)
             }
             try {
-                for (spec in SPECS) {
+                for ((index, spec) in SPECS.withIndex()) {
                     val numConfigs = IntArray(1)
                     // configs=null + config_size=0 -> count-only query.
                     val queried = EGL14.eglChooseConfig(display, spec, 0, null, 0, 0, numConfigs, 0)
                     if (queried && numConfigs[0] > 0) {
                         EngineLogger.i(SUBSYSTEM, "Compatible EGL config found — ${numConfigs[0]} match(es)")
+                        CrashDiag.step("EGL_PREFLIGHT", "OK spec#$index matches=${numConfigs[0]}")
                         return Result(true, "EGL config OK (${numConfigs[0]} match(es))")
                     }
                 }
                 val detail = "No compatible EGL window config on this driver"
                 EngineLogger.e(SUBSYSTEM, detail)
+                CrashDiag.step("EGL_PREFLIGHT", "FAIL no compatible config")
                 Result(false, detail)
             } finally {
                 // Thread-scoped cleanup only; the default display stays valid
@@ -96,6 +102,7 @@ object EGLPreflight {
             }
         } catch (t: Throwable) {
             EngineLogger.e(SUBSYSTEM, "EGL pre-flight probe failed", t)
+            CrashDiag.stepFailed("EGL_PREFLIGHT", t)
             Result(false, t.message ?: t.javaClass.simpleName)
         }
     }

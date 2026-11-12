@@ -2,6 +2,7 @@ package com.kenkern.engine.rendering
 
 import android.opengl.GLES30
 import android.opengl.GLSurfaceView
+import com.kenkern.engine.core.CrashDiag
 import com.kenkern.engine.core.EngineConfig
 import com.kenkern.engine.core.EngineLogger
 import com.kenkern.engine.math.Matrix4
@@ -43,6 +44,10 @@ class GLRenderer(
     private val selectionFinal = Matrix4()
     private val gridModel = Matrix4()
 
+    /** Completed frames since the current surface/context (diag counter). */
+    @Volatile
+    private var frameCount: Int = 0
+
     /** Non-null when initialization failed; surfaced by the editor UI. */
     @Volatile
     var initializationError: String? = null
@@ -68,11 +73,14 @@ class GLRenderer(
     // ------------------------------------------------------------------
 
     override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
+        CrashDiag.step("GL_ON_SURFACE_CREATED", "begin")
         try {
             guardedSurfaceCreated(gl, config)
+            CrashDiag.step("GL_ON_SURFACE_CREATED", "end ok error=$initializationError")
         } catch (t: Throwable) {
             drawFatal = false
             initializationError = describe(t)
+            CrashDiag.stepFailed("GL_ON_SURFACE_CREATED", t)
             EngineLogger.e(SUBSYSTEM, "onSurfaceCreated failed", t)
         }
     }
@@ -80,8 +88,10 @@ class GLRenderer(
     override fun onSurfaceChanged(gl: GL10?, width: Int, height: Int) {
         try {
             guardedSurfaceChanged(gl, width, height)
+            CrashDiag.step("GL_ON_SURFACE_CHANGED", "${width}x$height")
         } catch (t: Throwable) {
             initializationError = describe(t)
+            CrashDiag.stepFailed("GL_ON_SURFACE_CHANGED", t)
             EngineLogger.e(SUBSYSTEM, "onSurfaceChanged failed", t)
         }
     }
@@ -90,12 +100,21 @@ class GLRenderer(
         if (drawFatal) return
         try {
             guardedDrawFrame(gl)
+            frameCount++
+            when {
+                frameCount <= 5 -> CrashDiag.step("GL_FRAME", "frame=$frameCount")
+                frameCount == 300 || frameCount % 600 == 0 -> CrashDiag.step("GL_FRAME", "frame=$frameCount")
+            }
+            if (frameCount == 1) {
+                CrashDiag.step("GL_FIRST_FRAME_COMPLETED", "renderer reached steady state")
+            }
         } catch (t: Throwable) {
             // Stop drawing so a persistent failure does not spam the log; the
             // editor UI shows the error and onSurfaceCreated clears this on
             // context recreation.
             drawFatal = true
             if (initializationError == null) initializationError = describe(t)
+            CrashDiag.stepFailed("GL_ON_DRAW_FRAME", t)
             EngineLogger.e(SUBSYSTEM, "onDrawFrame failed", t)
         }
     }
@@ -104,7 +123,9 @@ class GLRenderer(
         // A new (or recreated) context invalidates all previous handles.
         initializationError = null
         drawFatal = false
+        frameCount = 0
         GLCapabilities.probe()
+        CrashDiag.step("GL_CAPS", GLCapabilities.summary)
 
         GLES30.glEnable(GLES30.GL_DEPTH_TEST)
         GLES30.glDepthFunc(GLES30.GL_LEQUAL)
@@ -122,10 +143,12 @@ class GLRenderer(
         if (!vertexColorProgram!!.create()) {
             initializationError = vertexColorProgram!!.lastError ?: "vertexColor shader failed"
         }
+        CrashDiag.step("GL_SHADERS", "solid=${solidProgram!!.isUsable} vertexColor=${vertexColorProgram!!.isUsable}")
 
         // Meshes (buffers upload lazily on first draw within this context).
         meshes.clear()
         buildMeshes()
+        CrashDiag.step("GL_MESHES_BUILT", "${meshes.size}+grid+wire")
         EngineLogger.i(SUBSYSTEM, "Surface created; renderer initialized. error=$initializationError")
     }
 

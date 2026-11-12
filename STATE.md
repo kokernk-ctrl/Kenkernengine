@@ -1,22 +1,67 @@
 # KENKERN — Project State
 
-> Updated after HOTFIX 0.1.1 (crash on project open + editor orientation).
-> This file always reflects the *actual* state of the repository — completed,
-> partial and broken things alike. Do not mark work complete here unless its
-> acceptance criteria were verified.
+> Updated after INVESTIGATION 0.1.2 (persistent scene-entry crash on the
+> physical device). This file always reflects the *actual* state of the
+> repository — completed, partial and broken things alike. Do not mark work
+> complete here unless its acceptance criteria were verified.
 
 ## Current status
 
 | Area | Status |
 | --- | --- |
 | Block 1 — Phases 0, 1, 2 | ✅ Implemented (see checklists below) |
-| HOTFIX 0.1.1 — crash on project open + editor orientation | ✅ Implemented (fixes verified by code audit + CI; device validation still pending, see below) |
-| Unit tests | ✅ 69/69 passing on CI (56 previous + 13 new regression tests) |
-| Debug APK | ✅ Built on CI (`kenkern-debug-apk` artifact) |
-| Release APK | ✅ Built on CI (`kenkern-release-apk` artifact; signing via secrets optional, currently unsigned) |
-| GitHub Actions | ✅ Hotfix run green (run 42890030869: tests + assembleDebug + assembleRelease + artifacts) |
-| Localization | ✅ en (base), pt-BR, pt-PT, fr — 129 keys each, key-complete |
-| Physical-device validation (Android 13 / Unisoc T612 / Mali) | ⚠️ **NOT performed** — no device available to the CI/sandbox; manual test plan below |
+| HOTFIX 0.1.1 — crash on project open + editor orientation | ✅ Implemented — but the crash **persists on the physical device** (see 0.1.2) |
+| INVESTIGATION 0.1.2 — forensic diagnosis of the scene-entry crash | ✅ Built: full static audit + `KENKERN_CRASH_DIAG` instrumentation + ApplicationExitInfo probe + standard SurfaceView compositing restored; **root cause on the device still requires one instrumented run** (no physical device available to CI/sandbox) |
+| Unit tests | ✅ 85/85 passing locally (69 previous + 16 new: mesh integrity + cycle safety) |
+| Debug APK | ✅ Built locally (`app-debug.apk`, v0.1.2/versionCode 3); CI artifact expected on push |
+| Release APK | ✅ Built locally (unsigned, v0.1.2); CI artifact expected on push |
+| GitHub Actions | ⏳ To verify after push of 0.1.2 |
+| Localization | ✅ en (base), pt-BR, pt-PT, fr — 136 keys each, key-complete |
+| Physical-device validation (Android 13 / Unisoc T612 / Mali) | ⚠️ **NOT performed** — no device available to the CI/sandbox; test plan below |
+
+## INVESTIGATION 0.1.2 — why the crash persists and what changed
+
+Evidence from the device owner (second report):
+1. The crash still occurs on the physical Unisoc T612 / Android 13 device
+   after 0.1.1.
+2. It predates the landscape change (orientation ruled out as original cause).
+3. Recent Apps can show the editor with grid and objects **already
+   rendered** — frames were presented before the process died. (A snapshot
+   is not proof the process stayed alive.)
+
+What the line-by-line audit established:
+- Every Java/Compose/EGL-callback path in the open chain is guarded and
+  type-correct; mesh index buffers, shader layout, format strings, thread
+  hand-offs are all verified sound (16 new regression tests now enforce it).
+- Therefore the remaining kill vectors are **below the Java layer**:
+  native GL-driver/compositor failures, ANR, or low-memory kills — none of
+  which the 0.1.1 Java guards can catch or record.
+- Both earlier builds composed the GL surface through **non-standard
+  window paths** (transparent background without translucent window;
+  then `windowIsTranslucent=true`). This SurfaceView family is a known
+  driver hazard on low-end Unisoc/Mali Android 13 and can die *after*
+  frames render — consistent with every piece of evidence.
+
+Changes in 0.1.2:
+1. **Compositing reverted to the industry-standard contract**: opaque window
+   + `setZOrderOnTop(false)` + unpainted viewport region (SurfaceView
+   punch-hole). Feature-preserving (viewport, panels, FPS overlay unchanged);
+   on a broken driver the worst case is a dark viewport, not a process death.
+2. **`CrashDiag` (`KENKERN_CRASH_DIAG`)**: timestamps + thread + stage for
+   every step from navigation to first frame; embedded into crash reports.
+3. **`ExitReasonProbe` (ApplicationExitInfo, API 30+)**: every launch now
+   reads how the previous process ended (CRASH / CRASH_NATIVE / ANR /
+   LOW_MEMORY / SIGNALED), persists report + platform trace to
+   `files/logs/`, and the home screen shows a localized banner with the
+   reason — real evidence from the user's device without adb.
+4. **Cycle-safe hierarchy walks** (`NinkRegistry` + `SceneSerializer`): a
+   corrupted cycle can no longer freeze the main thread or overflow the stack.
+5. Engine version 0.1.2 (versionCode 3).
+
+Next step when a device is available: install 0.1.2, reproduce once, then
+read the home-screen diagnostic banner + `files/logs/last-exit.txt` (and
+`exit-trace-*.txt` when present). That names the exact platform-level cause
+(native crash vs ANR vs LMK) and pins the failing stage through the diag trail.
 
 ## HOTFIX 0.1.1 — what was wrong and what was done
 

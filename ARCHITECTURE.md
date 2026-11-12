@@ -232,11 +232,11 @@ filesDir/
   revisions (Inspector reads live scene values keyed by revisions; the hierarchy is a flat
   `HierarchyRow` projection rebuilt on structural changes — never a parallel source of truth).
 - **GL in Compose**: the viewport is a `KenkernGLSurfaceView` embedded via `AndroidView`.
-  The GL surface sits behind the Compose window surface (`setZOrderOnTop(false)`) with a
-  **translucent window** (`windowIsTranslucent` + transparent background, see D7); the editor
-  paints opaque chrome (status-bar strip, top bar, navigation-bar strip) and leaves the
-  viewport region unpainted, so floating panels render above the viewport while the GL
-  content stays visible.
+  The GL surface sits behind the **opaque** Compose window surface (`setZOrderOnTop(false)`)
+  and the editor paints opaque chrome (status-bar strip, top bar, navigation-bar strip),
+  leaving the viewport region unpainted — the framework punches that region transparent
+  in the window surface (standard SurfaceView contract, see D7), so floating panels render
+  above the viewport while the GL content stays visible.
 - **Panels** (`editor/panels/`): `HierarchyPanel` (floating, draggable, search, expand/collapse,
   drag-handle reparenting, per-row three-dot menus), `InspectorPanel` (flags, transform,
   camera/light components), `AddNinkMenu` (entries from `NinkCatalog`, an extensible registry,
@@ -255,12 +255,13 @@ filesDir/
 | D4 | **Commands instead of direct scene mutation** | Undo/redo, single notification path, and main-thread confinement fall out of the same mechanism. Commands make every mutation reversible and testable (`CommandStackTest`, 12 tests) without UI. |
 | D5 | **Single Euler convention** `R = Rz(z)·Ry(y)·Rx(x)` (X then Y then Z) | One convention across math, serialization, Inspector (degrees) and tests eliminates convention drift between systems; `Transform.decomposeFrom` is implemented to invert exactly this composition. |
 | D6 | **Immutable `RenderFrameData` snapshots for UI → GL hand-off** | The GL thread must never observe live scene objects mid-mutation; a volatile pointer swap is lock-free, allocation-light (built only on change, not per frame) and trivially safe. |
-| D7 | **Translucent window + `setZOrderOnTop(false)`** | Lets the `GLSurfaceView` render *behind* the Compose window surface so Compose panels float above the viewport without a second compositing surface. The window must be translucent (`windowIsTranslucent` + transparent background) for per-pixel visibility of the behind-window surface; `EditorScreen` paints opaque chrome and leaves only the viewport area transparent. (HOTFIX 0.1.1 fixed the previous config, which kept the viewport hidden and used a fragile EGL/window combination.) |
+| D7 | **Opaque window + SurfaceView punch-hole + `setZOrderOnTop(false)`** (revised in 0.1.2) | Compose panels float above the viewport because the GL surface renders *behind* the window surface and the editor leaves the viewport region unpainted. The window is **opaque** (`windowIsTranslucent=false`, opaque `#0E0E10` background): the framework's standard punch-hole makes the unpainted viewport region transparent — the same contract every video/GPU app uses. History: pre-0.1.1 used a transparent background without a translucent window (viewport hidden, fragile); 0.1.1 switched to a translucent window (viewport visible, but a non-standard compositing path and a known driver hazard on low-end Unisoc/Mali Android 13 — process death *after* frames render). 0.1.2 reverted to the standard opaque punch-hole: on a broken driver the worst case is a dark viewport, not a crash. |
 | D8 | **Registry as single source of truth + flat `HierarchyRow` projection** | UI trees drift; a projection rebuilt from the registry on `STRUCTURE` changes keeps one authoritative structure with no parallel hierarchy to invalidate. |
 | D9 | **Version-checked file formats** | Scene/prefab files carry `format` + `version` (currently 1) and are rejected loudly on mismatch, so future format changes can migrate instead of silently corrupting scenes. |
 | D10 | **No per-frame allocations in the renderer** | Mobile GC pauses are visible in frame time; scratch matrices, cached meshes and cached shader programs keep the GL loop allocation-free. |
 | D11 | **Orientation via `requestedOrientation`, not two activities** (HOTFIX 0.1.1) | The launcher is portrait, the editor landscape. Requesting orientation on the single activity + declared `configChanges` avoids any activity recreation, so scene state, undo history and the GL surface survive the transition; a second activity would add state-transfer risk for zero benefit in a hotfix. |
 | D12 | **Defense-in-depth around the GL thread** (HOTFIX 0.1.1) | EGL failures inside `GLSurfaceView`'s GL thread are process-fatal by platform design. KENKERN therefore layers: UI-thread `EGLPreflight` (config availability before creation) → fallback config chooser → guarded surface/renderer creation → guarded renderer callbacks → error banner + crash-report file. Any layer that fails degrades to the next instead of crashing. |
+| D13 | **Forensic layer for uncatchable process deaths** (0.1.2) | Native GL-driver/compositor crashes, ANR and low-memory kills cannot be caught by any Java handler, and 0.1.1 proved that stack-free diagnosis invites wrong fixes. KENKERN therefore records the full execution trail (`CrashDiag`, tag `KENKERN_CRASH_DIAG`, embedded in crash reports) and reads **why the previous process actually died** via `ApplicationExitInfo` (`ExitReasonProbe`, API 30+), persisting the reason + platform trace to `files/logs/` and surfacing it in a localized home-screen banner — real device evidence without adb. Instrumentation only records; it never alters control flow or masks failures. |
 
 ## 8. Extension points for future blocks
 

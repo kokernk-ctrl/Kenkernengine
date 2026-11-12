@@ -124,9 +124,11 @@ class NinkRegistry {
         if (id == candidate) return true
         val root = ninks[id] ?: return false
         val stack = ArrayDeque<NinkId>()
+        val visited = HashSet<NinkId>()
         stack.addLast(root.id)
         while (stack.isNotEmpty()) {
             val current = stack.removeLast()
+            if (!visited.add(current)) continue // defensive: corrupted cycle must not loop forever
             if (current == candidate) return true
             ninks[current]?.childIds?.forEach { stack.addLast(it) }
         }
@@ -205,16 +207,26 @@ class NinkRegistry {
     /**
      * Computes the world matrix of [id] into [out]. Returns false when the
      * nink does not exist or the chain is broken (missing parent).
+     *
+     * Defensive against corrupted parent cycles: the walk is bounded by a
+     * visited set, so a malformed hierarchy can never spin forever (this
+     * runs on the main thread every render publish).
      */
     fun worldMatrix(id: NinkId, out: Matrix4, scratch: Matrix4): Boolean {
         val chain = ArrayList<Nink>(8)
+        val visited = HashSet<NinkId>()
         var current = ninks[id] ?: return false
         chain.add(current)
+        visited.add(current.id)
         while (current.parentId != null) {
             val parent = ninks[current.parentId]
             if (parent == null) {
                 // Broken chain: treat the deepest existing ancestor as root.
                 EngineLogger.w(SUBSYSTEM, "Broken parent chain at ${current.id} (parent ${current.parentId} missing)")
+                break
+            }
+            if (!visited.add(parent.id)) {
+                EngineLogger.w(SUBSYSTEM, "Parent cycle detected at ${current.id} (ancestor ${parent.id}) — walk truncated")
                 break
             }
             chain.add(parent)
@@ -228,12 +240,15 @@ class NinkRegistry {
         return true
     }
 
-    /** Depth of [id] in the hierarchy (root = 0), or -1 when missing. */
+    /** Depth of [id] in the hierarchy (root = 0), or -1 when missing. Cycle-safe. */
     fun depthOf(id: NinkId): Int {
         var depth = 0
         var current = ninks[id] ?: return -1
+        val visited = HashSet<NinkId>()
+        visited.add(current.id)
         while (current.parentId != null) {
             val parent = ninks[current.parentId] ?: break
+            if (!visited.add(parent.id)) break // defensive: corrupted cycle must not loop forever
             depth++
             current = parent
         }
@@ -246,10 +261,15 @@ class NinkRegistry {
     }
 
     private fun collectPreOrder(nink: Nink, out: MutableList<Nink>) {
-        out.add(nink)
-        for (childId in nink.childIds.toList()) {
-            ninks[childId]?.let { collectPreOrder(it, out) }
+        val visited = HashSet<NinkId>()
+        fun visit(current: Nink) {
+            if (!visited.add(current.id)) return // defensive: corrupted cycle must not recurse forever
+            out.add(current)
+            for (childId in current.childIds.toList()) {
+                ninks[childId]?.let { visit(it) }
+            }
         }
+        visit(nink)
     }
 
     private companion object {

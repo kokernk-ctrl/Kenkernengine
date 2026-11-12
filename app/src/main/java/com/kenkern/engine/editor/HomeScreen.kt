@@ -40,6 +40,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -48,6 +49,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.kenkern.engine.R
 import com.kenkern.engine.core.EngineConfig
+import com.kenkern.engine.core.ExitReasonProbe
 import com.kenkern.engine.editor.theme.KenkernColors
 import com.kenkern.engine.project.ProjectSummary
 import java.text.DateFormat
@@ -116,6 +118,16 @@ fun HomeScreen(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .padding(bottom = 12.dp)
+                )
+            }
+            viewModel.lastExit?.takeIf { it.abnormal }?.let { exit ->
+                val context = LocalContext.current
+                val reason = ExitReasonProbe.reasonLabel(context, exit.reasonCode)
+                DiagBanner(
+                    message = stringResource(R.string.diag_last_exit_abnormal, reason),
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .padding(top = 8.dp)
                 )
             }
         }
@@ -322,6 +334,33 @@ private fun ErrorBanner(message: String, onDismiss: () -> Unit, modifier: Modifi
             modifier = Modifier
                 .clickable { onDismiss() }
                 .padding(6.dp)
+        )
+    }
+}
+
+/**
+ * Forensic diagnostic banner (HOTFIX investigation): informs the user that
+ * the previous process run ended abnormally (crash / ANR / kill) and where
+ * the on-device report is stored. Informational only — it never blocks or
+ * degrades any feature.
+ */
+@Composable
+private fun DiagBanner(message: String, modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth(0.92f)
+            .background(KenkernColors.Panel.copy(alpha = 0.92f), RoundedCornerShape(10.dp))
+            .border(1.dp, KenkernColors.PanelBorder, RoundedCornerShape(10.dp))
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = message,
+            color = KenkernColors.TextSecondary,
+            fontSize = 11.sp,
+            maxLines = 3,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f)
         )
     }
 }

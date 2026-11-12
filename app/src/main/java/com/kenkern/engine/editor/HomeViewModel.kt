@@ -10,6 +10,9 @@ import com.kenkern.engine.project.ProjectException
 import com.kenkern.engine.project.ProjectRepository
 import com.kenkern.engine.project.ProjectSummary
 import com.kenkern.engine.R
+import com.kenkern.engine.core.CrashDiag
+import com.kenkern.engine.core.EngineRuntime
+import com.kenkern.engine.core.ExitReasonProbe
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -23,6 +26,10 @@ import kotlinx.coroutines.withContext
 class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     private val repository = ProjectRepository(application)
+
+    /** How the previous process ended (forensic exit probe, API 30+). */
+    val lastExit: ExitReasonProbe.LastExit?
+        get() = EngineRuntime.lastExit
 
     /** `null` while the initial listing is loading. */
     var projects by mutableStateOf<List<ProjectSummary>?>(null)
@@ -60,9 +67,11 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 val project = repository.createProject(name)
                 isCreatingProject = false
                 refreshProjects()
+                CrashDiag.step("PROJECT_CREATED", "id=${project.id} name='$name'")
                 onCreated(project.id)
             } catch (e: Exception) {
                 isCreatingProject = false
+                CrashDiag.stepFailed("PROJECT_CREATE_FAILED", e)
                 errorMessage = getApplication<Application>().getString(R.string.error_project_create, e.message ?: "unknown")
             }
         }

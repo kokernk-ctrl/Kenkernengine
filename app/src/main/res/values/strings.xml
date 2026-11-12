@@ -150,4 +150,12 @@
     <string name="error_invalid_name">Name cannot be empty.</string>
     <string name="toast_prefab_created">Prefab “%1$s” created</string>
     <string name="toast_scene_saved">Scene saved</string>
+<!-- Forensic diagnostics (HOTFIX 0.1.2 investigation) -->
+    <string name="diag_last_exit_abnormal">Diagnostics: the previous session ended abnormally (%1$s). A report was saved in the app\'s log folder.</string>
+    <string name="exit_reason_crash">application crash</string>
+    <string name="exit_reason_crash_native">native (GPU/driver) crash</string>
+    <string name="exit_reason_anr">not responding (ANR)</string>
+    <string name="exit_reason_low_memory">low memory kill</string>
+    <string name="exit_reason_signaled">system signal</string>
+    <string name="exit_reason_excessive_usage">excessive resource usage</string>
 </resources>

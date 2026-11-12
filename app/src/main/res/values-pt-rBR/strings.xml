@@ -150,4 +150,12 @@
     <string name="error_invalid_name">O nome não pode estar vazio.</string>
     <string name="toast_prefab_created">Prefab “%1$s” criado</string>
     <string name="toast_scene_saved">Cena salva</string>
+<!-- Diagnósticos forenses (investigação 0.1.2) -->
+    <string name="diag_last_exit_abnormal">Diagnóstico: a sessão anterior terminou de forma anormal (%1$s). Um relatório foi salvo na pasta de logs do aplicativo.</string>
+    <string name="exit_reason_crash">falha do aplicativo</string>
+    <string name="exit_reason_crash_native">falha nativa (GPU/driver)</string>
+    <string name="exit_reason_anr">sem resposta (ANR)</string>
+    <string name="exit_reason_low_memory">encerrado por falta de memória</string>
+    <string name="exit_reason_signaled">sinal do sistema</string>
+    <string name="exit_reason_excessive_usage">uso excessivo de recursos</string>
 </resources>

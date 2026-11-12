@@ -206,10 +206,15 @@ object SceneSerializer {
     }
 
     private fun collectPreOrder(scene: Scene, nink: Nink, out: MutableList<Nink>) {
-        out.add(nink)
-        for (childId in nink.childIds.toList()) {
-            scene.registry.nink(childId)?.let { collectPreOrder(scene, it, out) }
+        val visited = HashSet<String>()
+        fun visit(current: Nink) {
+            if (!visited.add(current.id.value)) return // defensive: corrupted cycle must not recurse forever
+            out.add(current)
+            for (childId in current.childIds.toList()) {
+                scene.registry.nink(childId)?.let { visit(it) }
+            }
         }
+        visit(nink)
     }
 
     private fun encodeNinks(ninks: List<Nink>): JSONArray {

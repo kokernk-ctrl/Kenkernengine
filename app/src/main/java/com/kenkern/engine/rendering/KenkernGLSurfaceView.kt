@@ -3,6 +3,7 @@ package com.kenkern.engine.rendering
 import android.content.Context
 import android.opengl.GLSurfaceView
 import android.view.MotionEvent
+import com.kenkern.engine.core.CrashDiag
 import com.kenkern.engine.core.EngineLogger
 import com.kenkern.engine.input.ViewportInputHandler
 import javax.microedition.khronos.egl.EGL10
@@ -36,20 +37,27 @@ class KenkernGLSurfaceView(
         private set
 
     init {
+        CrashDiag.step("GLSURFACEVIEW_INIT", "es3 context + fallback chooser + behind-window")
         setEGLContextClientVersion(3)
         setEGLConfigChooser(FallbackConfigChooser(SPECS))
         preserveEGLContextOnPause = true
-        // The surface renders behind the (translucent) window surface; Compose
-        // panels float above it and the viewport area stays transparent.
+        // The GL surface sits BEHIND the opaque window surface; the editor
+        // leaves the viewport region unpainted so the framework punches it
+        // transparent (standard SurfaceView contract — most driver-safe
+        // configuration; the alternative translucent-window path is a known
+        // low-end driver hazard and was reverted in 0.1.2).
         setZOrderOnTop(false)
     }
 
     fun attachRenderer(renderer: GLRenderer) {
+        CrashDiag.step("GL_SET_RENDERER", "before")
         try {
             setRenderer(renderer)
             renderMode = RENDERMODE_CONTINUOUSLY
+            CrashDiag.step("GL_SET_RENDERER", "attached, mode=CONTINUOUSLY")
         } catch (t: Throwable) {
             setupError = t.message ?: t.javaClass.simpleName
+            CrashDiag.stepFailed("GL_SET_RENDERER", t)
             EngineLogger.e(SUBSYSTEM, "setRenderer failed", t)
         }
     }
@@ -74,16 +82,18 @@ class KenkernGLSurfaceView(
     ) : GLSurfaceView.EGLConfigChooser {
 
         override fun chooseConfig(egl: EGL10, display: EGLDisplay): javax.microedition.khronos.egl.EGLConfig {
-            for (spec in specs) {
+            for ((specIndex, spec) in specs.withIndex()) {
                 val numConfigs = IntArray(1)
                 if (egl.eglChooseConfig(display, spec, null, 0, numConfigs) && numConfigs[0] > 0) {
                     val configs = arrayOfNulls<javax.microedition.khronos.egl.EGLConfig>(numConfigs[0])
                     if (egl.eglChooseConfig(display, spec, configs, configs.size, numConfigs) &&
                         numConfigs[0] > 0
                     ) {
+                        CrashDiag.step("EGL_CHOOSE_CONFIG", "matched spec#$specIndex configs=${numConfigs[0]}")
                         return configs[0]!!
                     }
                 }
+                CrashDiag.step("EGL_CHOOSE_CONFIG", "spec#$specIndex no match (${egl.eglGetError()})")
             }
             // Last resort: first available config. EGLPreflight guarantees at
             // least one exists; this branch is a safety net, not a code path.

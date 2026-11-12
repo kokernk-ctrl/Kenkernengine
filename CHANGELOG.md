@@ -2,7 +2,76 @@
 
 All notable changes to the KENKERN Engine are documented here.
 The format follows Keep a Changelog principles; the project has not yet
-adopted semantic versioning for public APIs (engine version: 0.1.1).
+adopted semantic versioning for public APIs (engine version: 0.1.2).
+
+## [0.1.2] — FORENSIC INVESTIGATION: persistent scene-entry crash on device
+
+User-reported after 0.1.1: the app still terminates when entering the
+scene editor on the physical target device (Android 13 / Unisoc T612 /
+Mali / GLES 3.0), and the Recent-Apps snapshot can show the editor with
+grid and objects already rendered — evidence that frames were presented
+before the process died. The crash predates the orientation change, so
+landscape was ruled out as the original cause.
+
+### Investigation findings (static audit, no device available)
+- The complete open-project chain (navigation → repository →
+  deserialization → registry → ViewModel → Compose → GLSurfaceView → EGL →
+  renderer → shaders → meshes → first frame) was audited line by line.
+  All Java/Compose paths are guarded and type-correct; mesh index data,
+  shader sources/layout, format strings and thread hand-offs are verified
+  sound (now enforced by 16 new JVM regression tests).
+- The kill vector that matches all evidence is **below the Java layer**:
+  native process death (GL driver / compositor / ANR / low-memory kill).
+  Java guards from 0.1.1 cannot catch or record these.
+- Both previous builds (pre-0.1.1 and 0.1.1) used **non-standard
+  window/GLSurfaceView compositing** (transparent background without
+  translucent window; then a translucent window). SurfaceView-behind-window
+  through those paths is a documented driver hazard on low-end Unisoc/Mali
+  Android 13 devices, and can kill the process *after* frames render.
+
+### Changed — compositing reverted to the standard contract
+- The window is **opaque** again (`windowIsTranslucent=false`, opaque
+  `#0E0E10` window background). The viewport composites through the
+  standard SurfaceView punch-hole (surface behind the window, viewport
+  region unpainted) — the same mechanism every video/GPU app uses. On a
+  broken driver the worst case is a dark viewport instead of a process
+  death. No feature was removed; panels, FPS overlay and the viewport all
+  keep working.
+
+### Added — forensic instrumentation (KENKERN_CRASH_DIAG)
+- `CrashDiag`: single-tag (`KENKERN_CRASH_DIAG`) wall-clock + thread +
+  uptime log of every stage: activity lifecycle, orientation requests,
+  project load, scene JSON read, deserialize, default scene, editor
+  compose, EGL pre-flight, config choice, surface created/changed, shader
+  results, mesh build, frames 1–5 and first frame completion. The full
+  trail is embedded into crash reports.
+- `ExitReasonProbe` (ApplicationExitInfo, API 30+): on every start the app
+  reads **how the previous process actually died** (CRASH / CRASH_NATIVE /
+  ANR / LOW_MEMORY / SIGNALED / …), saves a report plus the platform-provided
+  trace to `files/logs/`, and the home screen shows a localized diagnostic
+  banner with the reason — so the user can report the real cause without adb.
+- Crash reports now include device identity and the execution trail.
+- `EngineRuntime` resets the diag session and runs the exit probe at start.
+
+### Fixed — latent hierarchy-walk hazards (defensive)
+- `NinkRegistry.worldMatrix/depthOf/subtreeContains/collectPreOrder` and
+  `SceneSerializer.collectPreOrder` are now bounded by visited sets: a
+  corrupted parent/child cycle can no longer freeze the main thread (ANR)
+  or overflow the stack.
+
+### Tests
+- 16 new JVM regression tests (85 total): `MeshIntegrityTest` (9 — every
+  mesh's index buffer within vertex range, stride/layout integrity, 16-bit
+  index bound) and `NinkRegistryCycleTest` (7 — termination and sane
+  results under injected parent/child cycles).
+- Localization: +7 keys in en/pt-BR/pt-PT/fr (136 per locale).
+- Engine version 0.1.2 (versionCode 3).
+
+### Known limitation
+- Physical-device validation was **not** performed (no device/emulator
+  available to CI/sandbox). The 0.1.2 APKs are the instrumented
+  investigation builds: if the crash persists, the exit-reason banner and
+  `files/logs/` reports will name the exact cause on the next run.
 
 ## [0.1.1] — HOTFIX: crash on project open + editor orientation
 

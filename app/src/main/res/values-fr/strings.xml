@@ -150,4 +150,12 @@
     <string name="error_invalid_name">Le nom ne peut pas être vide.</string>
     <string name="toast_prefab_created">Prefab « %1$s » créé</string>
     <string name="toast_scene_saved">Scène enregistrée</string>
+<!-- Diagnostics forensiques (investigation 0.1.2) -->
+    <string name="diag_last_exit_abnormal">Diagnostic : la session précédente s\'est terminée anormalement (%1$s). Un rapport a été enregistré dans le dossier de journaux de l\'application.</string>
+    <string name="exit_reason_crash">plantage de l\'application</string>
+    <string name="exit_reason_crash_native">plantage natif (GPU/pilote)</string>
+    <string name="exit_reason_anr">sans réponse (ANR)</string>
+    <string name="exit_reason_low_memory">arrêté faute de mémoire</string>
+    <string name="exit_reason_signaled">signal système</string>
+    <string name="exit_reason_excessive_usage">utilisation excessive de ressources</string>
 </resources>

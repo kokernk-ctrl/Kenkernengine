@@ -2,14 +2,26 @@
 <resources>
     <!--
       KENKERN editor theme.
-      The window is translucent so the GLSurfaceView (which renders behind the
-      window surface) remains visible inside the editor viewport, while editor
-      screens paint their own opaque KENKERN dark background. The viewport
-      region of the editor is intentionally left unpainted by Compose.
+
+      HOTFIX INVESTIGATION (0.1.2): the window is OPAQUE. The GL viewport
+      composites through the standard SurfaceView punch-hole contract — the
+      GLSurfaceView surface sits behind the window surface
+      (setZOrderOnTop(false)) and the editor leaves the viewport region
+      unpainted, so the framework makes that region transparent in the window
+      surface (the same mechanism every video/GPU app uses).
+
+      History: the pre-0.1.1 build used a transparent window background
+      WITHOUT windowIsTranslucent, and 0.1.1 switched to a translucent window
+      (windowIsTranslucent=true). Both are non-standard compositing paths for
+      a SurfaceView hosted in an app window and are known driver hazards on
+      low-end Unisoc/Mali Android 13 devices (EGL_BAD_ALLOC / gralloc or
+      compositor aborts AFTER frames have rendered). The opaque punch-hole
+      path degrades gracefully (a dark viewport instead of a crash) on
+      broken drivers.
     -->
     <style name="Theme.Kenkern" parent="android:Theme.Material.NoActionBar">
-        <item name="android:windowBackground">@android:color/transparent</item>
-        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowBackground">@color/kenkern_background</item>
+        <item name="android:windowIsTranslucent">false</item>
         <item name="android:statusBarColor">@color/kenkern_background</item>
         <item name="android:navigationBarColor">@color/kenkern_background</item>
         <item name="android:windowLightStatusBar">false</item>

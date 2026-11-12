@@ -55,6 +55,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.kenkern.engine.R
+import com.kenkern.engine.core.CrashDiag
 import com.kenkern.engine.core.EngineLogger
 import com.kenkern.engine.editor.panels.HierarchyPanel
 import com.kenkern.engine.editor.panels.InspectorPanel
@@ -86,14 +87,17 @@ fun EditorScreen(
     viewModel.ensureLoaded(projectId)
 
     val activity = LocalContext.current.findActivity()
+    CrashDiag.step("EDITOR_COMPOSE", "projectId=$projectId loading=${viewModel.isLoading} failed=${viewModel.loadFailed}")
 
     // Landscape while editing; portrait again for the launcher. Disposable
     // so the restore runs on every path that leaves the editor (exit button,
     // system back gesture, fatal-load error screen).
     DisposableEffect(Unit) {
+        CrashDiag.step("ORIENTATION_REQUEST", "EDITOR (SENSOR_LANDSCAPE)")
         activity?.requestedOrientation = EditorOrientation.EDITOR
         onDispose {
             if (activity?.isFinishing == false) {
+                CrashDiag.step("ORIENTATION_RESTORE", "LAUNCHER (PORTRAIT)")
                 activity.requestedOrientation = EditorOrientation.LAUNCHER
             }
         }
@@ -416,8 +420,10 @@ private fun ViewportArea(viewModel: EditorViewModel) {
     // error state — never an uncaught exception on the GL thread.
     val setup: ViewportSetup = remember {
         try {
+            CrashDiag.step("VIEWPORT_SETUP", "begin: es3=${if (supportsEs3) "yes" else "no"}")
             val preflight = EGLPreflight.validate()
             if (!preflight.ok) {
+                CrashDiag.step("VIEWPORT_SETUP", "FAIL preflight: ${preflight.detail}")
                 ViewportSetup.Unavailable(preflight.detail)
             } else {
                 val surface = KenkernGLSurfaceView(
@@ -429,21 +435,24 @@ private fun ViewportArea(viewModel: EditorViewModel) {
                 surface.attachRenderer(renderer)
                 val setupError = surface.setupError
                 if (setupError != null) {
+                    CrashDiag.step("VIEWPORT_SETUP", "FAIL surface setup: $setupError")
                     ViewportSetup.Unavailable(setupError)
                 } else {
+                    CrashDiag.step("VIEWPORT_SETUP", "OK surface attached")
                     ViewportSetup.Ready(surface)
                 }
             }
         } catch (t: Throwable) {
             EngineLogger.e("Viewport", "Viewport initialization failed", t)
+            CrashDiag.stepFailed("VIEWPORT_SETUP", t)
             ViewportSetup.Unavailable(t.message ?: t.javaClass.simpleName)
         }
     }
 
     when (val current = setup) {
         is ViewportSetup.Unavailable -> {
-            // The window is translucent over the viewport area; paint an
-            // opaque backdrop so the error state does not show through.
+            // Opaque backdrop so the failure state does not show the window
+            // background through the (unpainted) viewport region.
             Box(
                 modifier = Modifier
                     .fillMaxSize()

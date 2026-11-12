@@ -118,6 +118,22 @@ class Mesh(
         isUploaded = false
     }
 
+    /** Diagnostic read-back of the interleaved vertex data (pure NIO, no GL). */
+    fun vertexArrayForDiagnostics(): FloatArray {
+        val array = FloatArray(vertexData.capacity())
+        vertexData.rewind()
+        vertexData.get(array)
+        return array
+    }
+
+    /** Diagnostic read-back of the index data (pure NIO, no GL). */
+    fun indexArrayForDiagnostics(): ShortArray {
+        val array = ShortArray(indexData.capacity())
+        indexData.rewind()
+        indexData.get(array)
+        return array
+    }
+
     private fun toDirectFloatBuffer(array: FloatArray): FloatBuffer =
         ByteBuffer.allocateDirect(array.size * FLOAT_SIZE_BYTES)
             .order(ByteOrder.nativeOrder())
