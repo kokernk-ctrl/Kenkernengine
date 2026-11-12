@@ -12,10 +12,10 @@
 | Block 1 — Phases 0, 1, 2 | ✅ Implemented (see checklists below) |
 | HOTFIX 0.1.1 — crash on project open + editor orientation | ✅ Implemented — but the crash **persists on the physical device** (see 0.1.2) |
 | INVESTIGATION 0.1.2 — forensic diagnosis of the scene-entry crash | ✅ Built: full static audit + `KENKERN_CRASH_DIAG` instrumentation + ApplicationExitInfo probe + standard SurfaceView compositing restored; **root cause on the device still requires one instrumented run** (no physical device available to CI/sandbox) |
-| Unit tests | ✅ 85/85 passing locally (69 previous + 16 new: mesh integrity + cycle safety) |
-| Debug APK | ✅ Built locally (`app-debug.apk`, v0.1.2/versionCode 3); CI artifact expected on push |
-| Release APK | ✅ Built locally (unsigned, v0.1.2); CI artifact expected on push |
-| GitHub Actions | ⏳ To verify after push of 0.1.2 |
+| Unit tests | ✅ 85/85 passing locally and on CI |
+| Debug APK | ✅ Built locally + on CI (`kenkern-debug-apk` artifact, run 43164515283) |
+| Release APK | ✅ Built locally + on CI (`kenkern-release-apk` artifact; unsigned — signing via secrets optional) |
+| GitHub Actions | ✅ 0.1.2 run green (run 43164515283: tests + assembleDebug + assembleRelease + artifacts) |
 | Localization | ✅ en (base), pt-BR, pt-PT, fr — 136 keys each, key-complete |
 | Physical-device validation (Android 13 / Unisoc T612 / Mali) | ⚠️ **NOT performed** — no device available to the CI/sandbox; test plan below |
 
